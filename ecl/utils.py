@@ -8,6 +8,7 @@ import openai
 from openai import OpenAI
 import numpy as np
 import os
+import sys
 from abc import ABC, abstractmethod
 import tiktoken
 from typing import Any, Dict
@@ -16,11 +17,16 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential
 )
-OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
-if 'BASE_URL' in os.environ:
-    BASE_URL = os.environ['BASE_URL']
-else:
-    BASE_URL = None
+
+# 使用统一的 API 配置模块，支持 OpenAI / DeepSeek 自动回退
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+from agent_adapter.api_config import get_api_key, get_base_url, create_openai_client, get_model_name
+
+OPENAI_API_KEY = get_api_key()
+BASE_URL = get_base_url()
 
 def getFilesFromType(sourceDir, filetype):
     files = []
@@ -112,20 +118,16 @@ class OpenAIModel(ModelBackend):
 
     @retry(wait=wait_exponential(min=5, max=60), stop=stop_after_attempt(5))
     def run(self, messages) :
-        if BASE_URL:
-            client = openai.OpenAI(
-                api_key=OPENAI_API_KEY,
-                base_url=BASE_URL,
-            )
-        else:
-            client = openai.OpenAI(
-                api_key=OPENAI_API_KEY
-            )
+        # 每次调用时动态获取 client，确保能正确读到 dotenv 加载的 Key
+        client = create_openai_client()
         current_retry = 0
         max_retry = 5
 
         string = "\n".join([message["content"] for message in messages])
-        encoding = tiktoken.encoding_for_model(self.model_type)
+        try:
+            encoding = tiktoken.encoding_for_model(self.model_type)
+        except (KeyError, ValueError):
+            encoding = tiktoken.get_encoding("cl100k_base")
         num_prompt_tokens = len(encoding.encode(string))
         gap_between_send_receive = 15 * len(messages)
         num_prompt_tokens += gap_between_send_receive
@@ -138,11 +140,16 @@ class OpenAIModel(ModelBackend):
             "gpt-4": 8192,
             "gpt-4-0613": 8192,
             "gpt-4-32k": 32768,
-            "gpt-4o": 4096, #100000
-            "gpt-4o-mini": 16384, #100000
+            "gpt-4o": 4096,
+            "gpt-4o-mini": 16384,
+            # DeepSeek 模型
+            "deepseek-chat": 8192,
+            "deepseek-reasoner": 8192,
         }
+        # 将默认的 gpt-3.5-turbo-16k 映射到当前实际使用的模型名
+        actual_model = get_model_name("gpt-3.5-turbo-16k")
         response = client.chat.completions.create(messages = messages,
-        model = "gpt-3.5-turbo-16k",
+        model = actual_model,
         temperature = 0.2,
         top_p = 1.0,
         n = 1,

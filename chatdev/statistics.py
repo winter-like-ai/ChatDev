@@ -15,6 +15,9 @@ def prompt_cost(model_type: str, num_prompt_tokens: float, num_completion_tokens
         "gpt-4-turbo": 0.01,
         "gpt-4o": 0.005,
         "gpt-4o-mini": 0.00015,
+        # DeepSeek 模型
+        "deepseek-chat": 0.00014,
+        "deepseek-reasoner": 0.00055,
     }
 
     output_cost_map = {
@@ -28,6 +31,9 @@ def prompt_cost(model_type: str, num_prompt_tokens: float, num_completion_tokens
         "gpt-4-turbo": 0.03,
         "gpt-4o": 0.015,
         "gpt-4o-mini": 0.0006,
+        # DeepSeek 模型
+        "deepseek-chat": 0.00028,
+        "deepseek-reasoner": 0.0022,
     }
 
     if model_type not in input_cost_map or model_type not in output_cost_map:

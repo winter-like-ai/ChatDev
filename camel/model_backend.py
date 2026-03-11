@@ -29,12 +29,24 @@ except ImportError:
     openai_new_api = False  # old openai api version
 
 import os
+import sys
 
-OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
-if 'BASE_URL' in os.environ:
-    BASE_URL = os.environ['BASE_URL']
-else:
-    BASE_URL = None
+# 使用统一的 API 配置模块，支持 OpenAI / DeepSeek 自动回退
+# 将项目根目录加入 sys.path 以确保 agent_adapter 可被导入
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+from agent_adapter.api_config import (
+    get_api_key,
+    get_base_url,
+    get_model_name,
+    get_max_tokens_for_model,
+)
+
+# 兼容性别名（保持其他模块的引用不变）
+OPENAI_API_KEY = get_api_key()
+BASE_URL = get_base_url()
 
 
 class ModelBackend(ABC):
@@ -65,44 +77,40 @@ class OpenAIModel(ModelBackend):
 
     def run(self, *args, **kwargs):
         string = "\n".join([message["content"] for message in kwargs["messages"]])
-        encoding = tiktoken.encoding_for_model(self.model_type.value)
+        # tiktoken 不认识 DeepSeek 模型名，对未知模型回退到 cl100k_base 编码（与 GPT-4 相同，计算近似）
+        try:
+            encoding = tiktoken.encoding_for_model(self.model_type.value)
+        except (KeyError, ValueError):
+            encoding = tiktoken.get_encoding("cl100k_base")
         num_prompt_tokens = len(encoding.encode(string))
         gap_between_send_receive = 15 * len(kwargs["messages"])
         num_prompt_tokens += gap_between_send_receive
 
         if openai_new_api:
-            # Experimental, add base_url
-            if BASE_URL:
+            # 使用 api_config 统一获取 key 和 url（支持 DeepSeek 自动回退）
+            _api_key = get_api_key()
+            _base_url = get_base_url()
+            if _base_url:
                 client = openai.OpenAI(
-                    api_key=OPENAI_API_KEY,
-                    base_url=BASE_URL,
+                    api_key=_api_key,
+                    base_url=_base_url,
                 )
             else:
                 client = openai.OpenAI(
-                    api_key=OPENAI_API_KEY
+                    api_key=_api_key
                 )
 
-            num_max_token_map = {
-                "gpt-3.5-turbo": 4096,
-                "gpt-3.5-turbo-16k": 16384,
-                "gpt-3.5-turbo-0613": 4096,
-                "gpt-3.5-turbo-16k-0613": 16384,
-                "gpt-4": 8192,
-                "gpt-4-0613": 8192,
-                "gpt-4-32k": 32768,
-                "gpt-4-turbo": 100000,
-                "gpt-4o": 4096, #100000
-                "gpt-4o-mini": 16384, #100000
-            }
-            num_max_token = num_max_token_map[self.model_type.value]
+            # 获取实际使用的模型名（DeepSeek 模式下自动映射）
+            actual_model = get_model_name(self.model_type.value)
+            num_max_token = get_max_tokens_for_model(actual_model)
             num_max_completion_tokens = num_max_token - num_prompt_tokens
             self.model_config_dict['max_tokens'] = num_max_completion_tokens
 
-            response = client.chat.completions.create(*args, **kwargs, model=self.model_type.value,
+            response = client.chat.completions.create(*args, **kwargs, model=actual_model,
                                                       **self.model_config_dict)
 
             cost = prompt_cost(
-                self.model_type.value,
+                actual_model,
                 num_prompt_tokens=response.usage.prompt_tokens,
                 num_completion_tokens=response.usage.completion_tokens
             )
@@ -115,27 +123,16 @@ class OpenAIModel(ModelBackend):
                 raise RuntimeError("Unexpected return from OpenAI API")
             return response
         else:
-            num_max_token_map = {
-                "gpt-3.5-turbo": 4096,
-                "gpt-3.5-turbo-16k": 16384,
-                "gpt-3.5-turbo-0613": 4096,
-                "gpt-3.5-turbo-16k-0613": 16384,
-                "gpt-4": 8192,
-                "gpt-4-0613": 8192,
-                "gpt-4-32k": 32768,
-                "gpt-4-turbo": 100000,
-                "gpt-4o": 4096, #100000
-                "gpt-4o-mini": 16384, #100000
-            }
-            num_max_token = num_max_token_map[self.model_type.value]
+            actual_model = get_model_name(self.model_type.value)
+            num_max_token = get_max_tokens_for_model(actual_model)
             num_max_completion_tokens = num_max_token - num_prompt_tokens
             self.model_config_dict['max_tokens'] = num_max_completion_tokens
 
-            response = openai.ChatCompletion.create(*args, **kwargs, model=self.model_type.value,
+            response = openai.ChatCompletion.create(*args, **kwargs, model=actual_model,
                                                     **self.model_config_dict)
 
             cost = prompt_cost(
-                self.model_type.value,
+                actual_model,
                 num_prompt_tokens=response["usage"]["prompt_tokens"],
                 num_completion_tokens=response["usage"]["completion_tokens"]
             )
@@ -188,6 +185,9 @@ class ModelFactory:
             ModelType.GPT_4_TURBO_V,
             ModelType.GPT_4O,
             ModelType.GPT_4O_MINI,
+            # DeepSeek 模型（使用 OpenAI 兼容 API）
+            ModelType.DEEPSEEK_CHAT,
+            ModelType.DEEPSEEK_REASONER,
             None
         }:
             model_class = OpenAIModel

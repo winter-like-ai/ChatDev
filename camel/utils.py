@@ -91,7 +91,10 @@ def num_tokens_from_messages(
         ModelType.GPT_4_TURBO_V,
         ModelType.GPT_4O,
         ModelType.GPT_4O_MINI,
-        ModelType.STUB
+        ModelType.STUB,
+        # DeepSeek 模型（兼容 OpenAI 对话格式）
+        ModelType.DEEPSEEK_CHAT,
+        ModelType.DEEPSEEK_REASONER,
     }:
         return count_tokens_openai_chat_models(messages, encoding)
     else:
@@ -130,6 +133,11 @@ def get_model_token_limit(model: ModelType) -> int:
         return 128000
     elif model == ModelType.GPT_4O_MINI:
         return 128000
+    # DeepSeek 模型
+    elif model == ModelType.DEEPSEEK_CHAT:
+        return 8192
+    elif model == ModelType.DEEPSEEK_REASONER:
+        return 8192
     else:
         raise ValueError("Unknown model type")
 
@@ -156,10 +164,10 @@ def openai_api_key_required(func: F) -> F:
             raise ValueError("Expected ChatAgent")
         if self.model == ModelType.STUB:
             return func(self, *args, **kwargs)
-        elif 'OPENAI_API_KEY' in os.environ:
+        elif 'OPENAI_API_KEY' in os.environ or 'DEEPSEEK_API_KEY' in os.environ:
             return func(self, *args, **kwargs)
         else:
-            raise ValueError('OpenAI API key not found.')
+            raise ValueError('OpenAI 或 DeepSeek API key 未找到，请设置 OPENAI_API_KEY 或 DEEPSEEK_API_KEY。')
 
     return wrapper
 

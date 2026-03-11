@@ -1,12 +1,17 @@
 import os
+import sys
 import openai
 from openai import OpenAI
-OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
-if 'BASE_URL' in os.environ:
-    BASE_URL = os.environ['BASE_URL']
-else:
-    BASE_URL = None
-import sys
+
+# 使用统一的 API 配置模块，支持 OpenAI / DeepSeek 自动回退
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+from agent_adapter.api_config import get_api_key, get_base_url, create_openai_client
+
+OPENAI_API_KEY = get_api_key()
+BASE_URL = get_base_url()
 import time
 from tenacity import (
     retry,
@@ -29,15 +34,8 @@ class OpenAIEmbedding:
 
     @retry(wait=wait_random_exponential(min=2, max=5), stop=stop_after_attempt(10))
     def get_text_embedding(self,text: str):
-            if BASE_URL:
-                client = openai.OpenAI(
-                    api_key=OPENAI_API_KEY,
-                    base_url=BASE_URL,
-                )
-            else:
-                client = openai.OpenAI(
-                    api_key=OPENAI_API_KEY
-                )
+            # 每次动态获取 client，确保能正确读到 dotenv 加载的 Key
+            client = create_openai_client()
 
             if len(text)>8191:
                   text = text[:8190]
@@ -55,15 +53,8 @@ class OpenAIEmbedding:
 
     @retry(wait=wait_random_exponential(min=10, max=60), stop=stop_after_attempt(10))
     def get_code_embedding(self,code: str):
-            if BASE_URL:
-                client = openai.OpenAI(
-                    api_key=OPENAI_API_KEY,
-                    base_url=BASE_URL,
-                )
-            else:
-                client = openai.OpenAI(
-                    api_key=OPENAI_API_KEY
-                )
+            # 每次动态获取 client，确保能正确读到 dotenv 加载的 Key
+            client = create_openai_client()
             if len(code) == 0:
                   code = "#"
             elif len(code) >8191:

@@ -53,6 +53,10 @@ class ModelType(Enum):
     GPT_4O = "gpt-4o"
     GPT_4O_MINI = "gpt-4o-mini"
 
+    # DeepSeek 模型（兼容 OpenAI API 格式）
+    DEEPSEEK_CHAT = "deepseek-chat"
+    DEEPSEEK_REASONER = "deepseek-reasoner"
+
     STUB = "stub"
 
     @property

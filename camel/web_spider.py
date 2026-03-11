@@ -4,20 +4,24 @@ import openai
 from openai import OpenAI
 import wikipediaapi
 import os
+import sys
 import time
 
-self_api_key = os.environ.get('OPENAI_API_KEY')
-BASE_URL = os.environ.get('BASE_URL')
+# 使用统一的 API 配置模块，支持 OpenAI / DeepSeek 自动回退
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
 
-if BASE_URL:
-    client = openai.OpenAI(
-        api_key=self_api_key,
-        base_url=BASE_URL,
-    )
-else:
-    client = openai.OpenAI(
-        api_key=self_api_key
-    )
+from agent_adapter.api_config import create_openai_client, get_model_name
+
+# 惰性初始化：在首次使用时创建 client，确保 dotenv 已加载
+_client = None
+
+def _get_client():
+    global _client
+    if _client is None:
+        _client = create_openai_client()
+    return _client
 
 def get_baidu_baike_content(keyword):
     # design api by the baidubaike
@@ -57,8 +61,8 @@ def modal_trans(task_dsp):
         task_in ="'" + task_dsp + \
                "'Just give me the most important keyword about this sentence without explaining it and your answer should be only one keyword."
         messages = [{"role": "user", "content": task_in}]
-        response = client.chat.completions.create(messages=messages,
-        model="gpt-3.5-turbo-16k",
+        response = _get_client().chat.completions.create(messages=messages,
+        model=get_model_name("gpt-3.5-turbo-16k"),
         temperature=0.2,
         top_p=1.0,
         n=1,
@@ -72,8 +76,8 @@ def modal_trans(task_dsp):
         task_in = "'" + spider_content + \
                "',Summarize this paragraph and return the key information."
         messages = [{"role": "user", "content": task_in}]
-        response = client.chat.completions.create(messages=messages,
-        model="gpt-3.5-turbo-16k",
+        response = _get_client().chat.completions.create(messages=messages,
+        model=get_model_name("gpt-3.5-turbo-16k"),
         temperature=0.2,
         top_p=1.0,
         n=1,
