@@ -64,7 +64,7 @@ class ChatDevAdapter(AgentAdapterBase):
         org_name: 组织名称
         chatdev_root: ChatDev 项目根目录路径（默认自动检测）
 
-    使用示例::
+    使用示例:
 
         adapter = ChatDevAdapter(
             config="Default",
