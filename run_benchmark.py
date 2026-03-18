@@ -90,15 +90,18 @@ def run_benchmark_task(task_id: str, dataset_path: str = None):
             _project_root, "benchmark", "programdev", "programdev_dataset.json"
         )
         
-    # 初始化 ChatDev 智能体适配器
-    agent = ChatDevAdapter()
-    agent.reset_session(task_id=task_id)
-
     # 初始化 ProgramDev 环境适配器并使用上下文管理器自动管资源
     try:
         with ProgramDevEnv(dataset_path=dataset_path) as env:
             # 1. 环境初始化
             env_obs = env.reset(task_id)
+            
+            # 从环境获取 project_name，作为 ChatDev 的任务和项目名称（例如 2048）
+            project_name = env_obs.metadata.get("project_name", task_id) if env_obs.metadata else task_id
+            
+            # 初始化 ChatDev 智能体适配器
+            agent = ChatDevAdapter()
+            agent.reset_session(task_id=project_name)
             done = False
             total_reward = 0.0
             
@@ -159,8 +162,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--task", "-t", 
         type=str, 
-        default="0", 
-        help="要运行的任务标识符 (项目名如 'TicTacToe' 或数字索引如 '0')"
+        default="all", 
+        help="要运行的任务标识符 (项目名如 'TicTacToe' 或数字索引如 '0')，输入 'all' 运行全部"
     )
     parser.add_argument(
         "--dataset", "-d", 
@@ -170,4 +173,22 @@ if __name__ == "__main__":
     )
     
     args = parser.parse_args()
-    run_benchmark_task(args.task, args.dataset)
+    
+    if args.task.lower() == "all":
+        import json
+        dataset_path = args.dataset
+        if not dataset_path:
+            dataset_path = os.path.join(
+                _project_root, "benchmark", "programdev", "programdev_dataset.json"
+            )
+        try:
+            with open(dataset_path, "r", encoding="utf-8") as f:
+                dataset = json.load(f)
+            num_tasks = len(dataset)
+            logger.info(f"开始顺序执行整个 Benchmark, 共 {num_tasks} 个任务。")
+            for i in range(num_tasks):
+                run_benchmark_task(str(i), dataset_path)
+        except Exception as e:
+            logger.error(f"加载数据集失败: {e}")
+    else:
+        run_benchmark_task(args.task, args.dataset)

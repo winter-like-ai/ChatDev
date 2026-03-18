@@ -206,12 +206,32 @@ class ChatDevAdapter(AgentAdapterBase):
             metadata={"task_id": self._current_task_id},
         )
 
+        file_handler = None
         try:
             # ---- Step 1: 准备 ChatChain ----
             chat_chain = self._initialize_chat_chain(
                 task_prompt=observation.instruction,
                 project_name=self._current_task_id or "benchmark_task",
             )
+
+            # 配置特定于当前任务的日志文件 (类似 run.py 中的 Init Log)
+            if hasattr(chat_chain, "log_filepath") and chat_chain.log_filepath:
+                try:
+                    os.makedirs(os.path.dirname(chat_chain.log_filepath), exist_ok=True)
+                    
+                    # 使用与 run.py 完全相同的 logging.basicConfig 方式进行对齐配置
+                    logging.basicConfig(
+                        filename=chat_chain.log_filepath, 
+                        level=logging.INFO,
+                        format='[%(asctime)s %(levelname)s] %(message)s',
+                        datefmt='%Y-%d-%m %H:%M:%S', 
+                        encoding="utf-8",
+                        force=True # 强制覆盖现有的 root handlers，确保使用该配置
+                    )
+                    # 记录此时的 handler 方便结束任务时移除
+                    file_handler = logging.getLogger().handlers[-1] if logging.getLogger().handlers else None
+                except Exception as e:
+                    logger.warning(f"无法为 ChatChain 配置日志文件: {e}")
 
             self._log_event(
                 phase_name="Initialization",
@@ -308,6 +328,10 @@ class ChatDevAdapter(AgentAdapterBase):
             # 分类底层异常
             adapter_error = self._classify_error(e)
             return self._handle_error(adapter_error)
+        finally:
+            if file_handler:
+                logging.getLogger().removeHandler(file_handler)
+                file_handler.close()
 
     # ================================================================
     #  3. 内部轨迹导出
