@@ -68,7 +68,7 @@ def map_observation(env_observation) -> ObservationInput:
     )
 
 
-def run_benchmark_task(task_id: str, dataset_path: str = None):
+def run_benchmark_task(task_id: str, dataset_path: str = None, project_path: str = None, rollback_phase: str = None):
     """
     运行完整的单个 Benchmark 任务。
     
@@ -101,7 +101,15 @@ def run_benchmark_task(task_id: str, dataset_path: str = None):
             
             # 初始化 ChatDev 智能体适配器
             agent = ChatDevAdapter()
-            agent.reset_session(task_id=project_name)
+            
+            # 传递检查点参数
+            kwargs = {}
+            if project_path:
+                kwargs["project_path"] = project_path
+            if rollback_phase:
+                kwargs["rollback_phase"] = rollback_phase
+                
+            agent.reset_session(task_id=project_name, **kwargs)
             done = False
             total_reward = 0.0
             
@@ -171,6 +179,18 @@ if __name__ == "__main__":
         default=None, 
         help="指定数据集的 JSON 文件路径"
     )
+    parser.add_argument(
+        "--project_path",
+        type=str,
+        default=None,
+        help="指定一个历史运行的项目目录，用于恢复执行"
+    )
+    parser.add_argument(
+        "--rollback_phase",
+        type=str,
+        default=None,
+        help="指定要恢复执行的具体阶段名称或索引"
+    )
     
     args = parser.parse_args()
     
@@ -191,4 +211,4 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(f"加载数据集失败: {e}")
     else:
-        run_benchmark_task(args.task, args.dataset)
+        run_benchmark_task(args.task, args.dataset, args.project_path, args.rollback_phase)

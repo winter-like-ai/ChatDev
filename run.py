@@ -74,14 +74,18 @@ parser.add_argument('--config', type=str, default="Default",
                     help="Name of config, which is used to load configuration under CompanyConfig/")
 parser.add_argument('--org', type=str, default="DefaultOrganization",
                     help="Name of organization, your software will be generated in WareHouse/name_org_timestamp")
-parser.add_argument('--task', type=str, default="Develop a basic Gomoku game.",
+parser.add_argument('--task', type=str, default="Develop a Checkers (Draughts) game. Use an 8x8 board, alternate turns between two players, and apply standard capture and kinging rules. Prompt for moves in notation (e.g., from-to positions) and update the board state accordingly.",
                     help="Prompt of software")
-parser.add_argument('--name', type=str, default="Gomoku",
+parser.add_argument('--name', type=str, default="Checkers",
                     help="Name of software, your software will be generated in WareHouse/name_org_timestamp")
 parser.add_argument('--model', type=str, default="GPT_3_5_TURBO",
                     help="GPT Model, choose from {'GPT_3_5_TURBO', 'GPT_4', 'GPT_4_TURBO', 'GPT_4O', 'GPT_4O_MINI', 'DEEPSEEK_CHAT', 'DEEPSEEK_REASONER'}")
 parser.add_argument('--path', type=str, default="",
                     help="Your file directory, ChatDev will build upon your software in the Incremental mode")
+parser.add_argument('--project_path', type=str, default="",
+                    help="The path to an existing project directory from a previous run for rollback (e.g., WareHouse/Project_Org_Time)")
+parser.add_argument('--rollback_phase', type=str, default="",
+                    help="The phase name or index to rollback to. For example, '2' or 'Coding'. Used with --project_path")
 args = parser.parse_args()
 
 # Start ChatDev
@@ -111,7 +115,9 @@ chat_chain = ChatChain(config_path=config_path,
                        project_name=args.name,
                        org_name=args.org,
                        model_type=args2type[args.model],
-                       code_path=args.path)
+                       code_path=args.path,
+                       project_path=args.project_path,
+                       rollback_phase=args.rollback_phase)
 
 # ----------------------------------------
 #          Init Log

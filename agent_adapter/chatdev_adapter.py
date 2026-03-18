@@ -119,6 +119,8 @@ class ChatDevAdapter(AgentAdapterBase):
         # 内部状态（在 reset_session 中初始化）
         self._chat_chain = None
         self._current_software_path: str | None = None
+        self._project_path: str = ""
+        self._rollback_phase: str = ""
 
     # ================================================================
     #  1. 生命周期管理
@@ -169,6 +171,10 @@ class ChatDevAdapter(AgentAdapterBase):
             self._model_name = kwargs["model_override"]
         if "config_override" in kwargs:
             self._config_name = kwargs["config_override"]
+            
+        # 记录 checkpoint 控制参数
+        self._project_path = kwargs.get("project_path", "")
+        self._rollback_phase = kwargs.get("rollback_phase", "")
 
         # 调用基类重置（设置 _session_initialized, 清空日志）
         super().reset_session(task_id, **kwargs)
@@ -266,6 +272,10 @@ class ChatDevAdapter(AgentAdapterBase):
             # 执行链式阶段（核心多轮对话协作）
             for i, phase_item in enumerate(chat_chain.chain):
                 phase_name = phase_item.get("phase", f"Phase_{i}")
+                
+                # 保存当前状态作为一个 checkpoint
+                chat_chain.save_checkpoint(i, phase_item)
+                
                 self._log_event(
                     phase_name=phase_name,
                     agent_role="System",
@@ -383,6 +393,8 @@ class ChatDevAdapter(AgentAdapterBase):
             org_name=self._org_name,
             model_type=model_type,
             code_path="",
+            project_path=self._project_path,
+            rollback_phase=self._rollback_phase,
         )
 
         self._chat_chain = chat_chain

@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import time
+import pickle
 from datetime import datetime
 
 from camel.agents import RolePlaying
@@ -29,7 +30,8 @@ class ChatChain:
                  project_name: str = None,
                  org_name: str = None,
                  model_type: ModelType = ModelType.GPT_3_5_TURBO,
-                 code_path: str = None) -> None:
+                 code_path: str = None,
+                 **kwargs) -> None:
         """
 
         Args:
@@ -49,6 +51,8 @@ class ChatChain:
         self.org_name = org_name
         self.model_type = model_type
         self.code_path = code_path
+        self.project_path = kwargs.get('project_path', "")
+        self.rollback_phase = kwargs.get('rollback_phase', "")
 
         with open(self.config_path, 'r', encoding="utf8") as file:
             self.config = json.load(file)
@@ -164,8 +168,37 @@ class ChatChain:
         Returns: None
 
         """
-        for phase_item in self.chain:
+        start_phase_idx = 0
+        if self.rollback_phase:
+            try:
+                # If rollback_phase is an integer index
+                start_phase_idx = int(self.rollback_phase)
+            except ValueError:
+                # If rollback_phase is a phase name, find its index
+                for idx, phase_item in enumerate(self.chain):
+                    if phase_item['phase'] == self.rollback_phase:
+                        start_phase_idx = idx
+                        break
+
+        for phase_idx in range(start_phase_idx, len(self.chain)):
+            phase_item = self.chain[phase_idx]
+            self.save_checkpoint(phase_idx, phase_item)
             self.execute_step(phase_item)
+
+    def save_checkpoint(self, phase_idx, phase_item):
+        """
+        Save the current state of ChatEnv as a checkpoint.
+        """
+        checkpoint_dir = os.path.join(self.chat_env.env_dict['directory'], 'checkpoints')
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
+        
+        checkpoint_path = os.path.join(checkpoint_dir, f"phase_{phase_idx}.pkl")
+        with open(checkpoint_path, 'wb') as f:
+            pickle.dump(self.chat_env, f)
+        
+        phase_name = phase_item.get('phase', f'Phase_{phase_idx}') if isinstance(phase_item, dict) else str(phase_item)
+        log_visualize(f"**[Checkpoint]**\n\nCheckpoint saved to {checkpoint_path} before phase {phase_name}")
 
     def get_logfilepath(self):
         """
@@ -194,6 +227,57 @@ class ChatChain:
         filepath = os.path.dirname(__file__)
         root = os.path.dirname(filepath)
         directory = os.path.join(root, "WareHouse")
+
+        if self.rollback_phase and self.project_path:
+            # We are rolling back
+            software_path = self.project_path
+            
+            # If the user provides a relative path, make it absolute
+            if not os.path.isabs(software_path):
+                software_path = os.path.join(root, software_path)
+                
+            self.chat_env.set_directory(software_path, is_rollback=True)
+            
+            # Find the checkpoint index
+            start_phase_idx = 0
+            try:
+                start_phase_idx = int(self.rollback_phase)
+            except ValueError:
+                for idx, phase_item in enumerate(self.chain):
+                    if phase_item['phase'] == self.rollback_phase:
+                        start_phase_idx = idx
+                        break
+            
+            checkpoint_path = os.path.join(software_path, 'checkpoints', f"phase_{start_phase_idx}.pkl")
+            # print(f"[DEBUG] Rolling back using software_path: {software_path}")
+            # print(f"[DEBUG] Looking for checkpoint at: {checkpoint_path}")
+            if os.path.exists(checkpoint_path):
+                with open(checkpoint_path, 'rb') as f:
+                    self.chat_env = pickle.load(f)
+                    # Update potentially changed paths if directory changed
+                    self.chat_env.set_directory(software_path, is_rollback=True)
+                    
+                    # Overwrite the prompt if a new one is provided during rollback
+                    if self.task_prompt_raw:
+                         self.chat_env.env_dict['task_prompt'] = self.task_prompt_raw
+
+                    log_visualize(f"**[Rollback]**\n\nRolled back to checkpoint {checkpoint_path}...")
+
+                    # Rewrite codes and docs to sync the physical files with the checkpoint state
+                    self.chat_env.rewrite_codes("Rollback Restore")
+                    self.chat_env.rewrite_requirements()
+                    self.chat_env.rewrite_manuals()
+                    
+                    # Set project name from project_path (always extract from the existing project path during rollback)
+                    self.project_name = os.path.basename(os.path.normpath(software_path)).split('_')[0]
+
+                    # write task prompt to software
+                    with open(os.path.join(software_path, self.project_name + ".prompt"), "w") as f:
+                        f.write(self.task_prompt_raw)
+
+                    return
+            else:
+                 print(f"Warning: Checkpoint {checkpoint_path} not found. Proceeding normally.")
 
         if self.chat_env.config.clear_structure:
             for filename in os.listdir(directory):
@@ -318,9 +402,10 @@ class ChatChain:
         logging.shutdown()
         time.sleep(1)
 
-        shutil.move(self.log_filepath,
-                    os.path.join(root + "/WareHouse", "_".join([self.project_name, self.org_name, self.start_time]),
-                                 os.path.basename(self.log_filepath)))
+        if os.path.exists(self.log_filepath):
+            shutil.move(self.log_filepath,
+                        os.path.join(root + "/WareHouse", "_".join([self.project_name, self.org_name, self.start_time]),
+                                     os.path.basename(self.log_filepath)))
 
     # @staticmethod
     def self_task_improve(self, task_prompt):

@@ -79,23 +79,35 @@ class ChatEnv:
                 subprocess.Popen("pip install {}".format(module), shell=True).wait()
                 log_visualize("**[CMD Execute]**\n\n[CMD] pip install {}".format(module))
 
-    def set_directory(self, directory):
-        assert len(self.env_dict['directory']) == 0
+    def set_directory(self, directory, is_rollback=False):
+        if self.env_dict['directory'] != "":
+            # When loading from a checkpoint, the directory is already set. 
+            # We just want to update it to potentially a new path.
+            self.env_dict['directory'] = directory
+            self.codes.directory = directory
+            self.requirements.directory = directory
+            self.manuals.directory = directory
+            return
+
         self.env_dict['directory'] = directory
         self.codes.directory = directory
         self.requirements.directory = directory
         self.manuals.directory = directory
 
-        if os.path.exists(self.env_dict['directory']) and len(os.listdir(directory)) > 0:
-            new_directory = "{}.{}".format(directory, time.strftime("%Y%m%d%H%M%S", time.localtime()))
-            shutil.copytree(directory, new_directory)
-            print("{} Copied to {}".format(directory, new_directory))
-        if os.path.exists(self.env_dict['directory']):
-            shutil.rmtree(self.env_dict['directory'])
-            os.mkdir(self.env_dict['directory'])
-            print("{} Created".format(directory))
+        if not is_rollback:
+            if os.path.exists(self.env_dict['directory']) and len(os.listdir(directory)) > 0:
+                new_directory = "{}.{}".format(directory, time.strftime("%Y%m%d%H%M%S", time.localtime()))
+                shutil.copytree(directory, new_directory)
+                print("{} Copied to {}".format(directory, new_directory))
+            if os.path.exists(self.env_dict['directory']):
+                shutil.rmtree(self.env_dict['directory'])
+                os.mkdir(self.env_dict['directory'])
+                print("{} Created".format(directory))
+            else:
+                os.mkdir(self.env_dict['directory'])
         else:
-            os.mkdir(self.env_dict['directory'])
+            if not os.path.exists(self.env_dict['directory']):
+                os.mkdir(self.env_dict['directory'])
     
     def init_memory(self):
         self.memory.id_enabled = True
