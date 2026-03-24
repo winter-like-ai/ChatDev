@@ -240,11 +240,11 @@ class ChatAgent(BaseAgent):
             if openai_new_api:
                 if not isinstance(response, ChatCompletion):
                     raise RuntimeError("OpenAI returned unexpected struct")
-                output_messages = [
-                    ChatMessage(role_name=self.role_name, role_type=self.role_type,
-                                meta_dict=dict(), **dict(choice.message))
-                    for choice in response.choices
-                ]
+                output_messages = []
+                for choice in response.choices:
+                    msg_dict = dict(choice.message)
+                    kwargs = {k: v for k, v in msg_dict.items() if k in ["role", "content", "function_call", "tool_calls"] and v is not None}
+                    output_messages.append(ChatMessage(role_name=self.role_name, role_type=self.role_type, meta_dict=dict(), **kwargs))
                 info = self.get_info(
                     response.id,
                     response.usage,
@@ -254,11 +254,11 @@ class ChatAgent(BaseAgent):
             else:
                 if not isinstance(response, dict):
                     raise RuntimeError("OpenAI returned unexpected struct")
-                output_messages = [
-                    ChatMessage(role_name=self.role_name, role_type=self.role_type,
-                                meta_dict=dict(), **dict(choice["message"]))
-                    for choice in response["choices"]
-                ]
+                output_messages = []
+                for choice in response["choices"]:
+                    msg_dict = dict(choice["message"])
+                    kwargs = {k: v for k, v in msg_dict.items() if k in ["role", "content", "function_call", "tool_calls"] and v is not None}
+                    output_messages.append(ChatMessage(role_name=self.role_name, role_type=self.role_type, meta_dict=dict(), **kwargs))
                 info = self.get_info(
                     response["id"],
                     response["usage"],

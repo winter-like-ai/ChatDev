@@ -16,6 +16,9 @@ import logging
 import os
 import sys
 
+import dotenv
+dotenv.load_dotenv(override=True)
+
 from camel.typing import ModelType
 
 root = os.path.dirname(__file__)
@@ -74,11 +77,11 @@ parser.add_argument('--config', type=str, default="Default",
                     help="Name of config, which is used to load configuration under CompanyConfig/")
 parser.add_argument('--org', type=str, default="DefaultOrganization",
                     help="Name of organization, your software will be generated in WareHouse/name_org_timestamp")
-parser.add_argument('--task', type=str, default="Develop a basic Gomoku game.",
+parser.add_argument('--task', type=str, default="Create a CLI tool that takes a text file path as input and outputs the total word count. The tool should handle basic punctuation and count sequences of alphanumeric characters as words. Output the count to the console.",
                     help="Prompt of software")
-parser.add_argument('--name', type=str, default="Gomoku",
+parser.add_argument('--name', type=str, default="CLI_Text_File_Word_Counter",
                     help="Name of software, your software will be generated in WareHouse/name_org_timestamp")
-parser.add_argument('--model', type=str, default="GPT_3_5_TURBO",
+parser.add_argument('--model', type=str, default="GPT_4O",
                     help="GPT Model, choose from {'GPT_3_5_TURBO', 'GPT_4', 'GPT_4_TURBO', 'GPT_4O', 'GPT_4O_MINI'}")
 parser.add_argument('--path', type=str, default="",
                     help="Your file directory, ChatDev will build upon your software in the Incremental mode")
