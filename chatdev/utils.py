@@ -10,19 +10,19 @@ from visualizer.app import send_msg
 
 
 def now():
+    """获取当前时间并格式化为 YYYYMMDDHHMMSS 格式的字符串。"""
     return time.strftime("%Y%m%d%H%M%S", time.localtime())
 
 
 def log_visualize(role, content=None):
     """
-    send the role and content to visualizer server to show log on webpage in real-time
-    You can leave the role undefined and just pass the content, i.e. log_visualize("messages"), where the role is "System".
-    Args:
-        role: the agent that sends message
-        content: the content of message
+    将角色和内容发送到 visualizer 服务器，以便在网页上实时显示日志。
+    你可以不指定 role 而只传递 content，例如 log_visualize("messages")，此时 role 默认为 "System"。
+    参数 (Args):
+        role: 发送消息的代理/角色 (agent)
+        content: 消息的内容
 
-    Returns: None
-
+    返回 (Returns): None
     """
     if not content:
         logging.info(role + "\n")
@@ -46,6 +46,9 @@ def log_visualize(role, content=None):
 
 
 def convert_to_markdown_table(records_kv):
+    """
+    将键值对记录列表转换成 Markdown 格式的表格。
+    """
     # Create the Markdown table header
     header = "| Parameter | Value |\n| --- | --- |"
 
@@ -59,6 +62,9 @@ def convert_to_markdown_table(records_kv):
 
 
 def log_arguments(func):
+    """
+    装饰器：记录函数调用时传入的参数并输出到日志（以 Markdown 表格的形式）。
+    """
     def wrapper(*args, **kwargs):
         sig = inspect.signature(func)
         params = sig.parameters
@@ -81,6 +87,9 @@ def log_arguments(func):
     return wrapper
 
 def escape_string(value):
+    """
+    对字符串进行转义操作，用于清洗要显示的网页/日志内容。
+    """
     value = str(value)
     value = html.unescape(value)
     value = markdown.markdown(value)

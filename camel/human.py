@@ -20,22 +20,20 @@ from camel.utils import print_text_animated
 
 
 class Human:
-    r"""A class representing a human user.
+    r"""代表人类用户的类。
 
-    Args:
-        name (str): The name of the human user.
-            (default: :obj:`"Kill Switch Engineer"`).
-        logger_color (Any): The color of the menu options displayed to the
-            user. (default: :obj:`Fore.MAGENTA`)
+    参数 (Args):
+        name (str): 人类用户的名称。
+            (默认: :obj:`"Kill Switch Engineer"`).
+        logger_color (Any): 显示给用户的菜单选项的颜色。
+            (默认: :obj:`Fore.MAGENTA`)
 
-    Attributes:
-        name (str): The name of the human user.
-        logger_color (Any): The color of the menu options displayed to the
-            user.
-        input_button (str): The text displayed for the input button.
-        kill_button (str): The text displayed for the kill button.
-        options_dict (Dict[str, str]): A dictionary containing the options
-            displayed to the user.
+    属性 (Attributes):
+        name (str): 人类用户的名称。
+        logger_color (Any): 显示给用户的菜单选项的颜色。
+        input_button (str): 用于输入按钮的显示文本。
+        kill_button (str): 用于终止(Kill)按钮的显示文本。
+        options_dict (Dict[str, str]): 包含显示给用户的可用选项字典。
     """
 
     def __init__(self, name: str = "Kill Switch Engineer",
@@ -47,12 +45,12 @@ class Human:
         self.options_dict: Dict[str, str] = dict()
 
     def display_options(self, messages: Sequence[ChatMessage]) -> None:
-        r"""Displays the options to the user.
+        r"""向用户显示交互选项。
 
-        Args:
-            messages (Sequence[ChatMessage]): A list of `ChatMessage` objects.
+        参数 (Args):
+            messages (Sequence[ChatMessage]): 包含 ChatMessage 对象的列表。
 
-        Returns:
+        返回 (Returns):
             None
         """
         options = [message.content for message in messages]
@@ -69,10 +67,10 @@ class Human:
             self.options_dict[str(index + 1)] = option
 
     def get_input(self) -> str:
-        r"""Gets the input from the user.
+        r"""获取人类用户的输入。
 
-        Returns:
-            str: The user's input.
+        返回 (Returns):
+            str: 用户的输入字符串。
         """
         while True:
             human_input = input(
@@ -88,14 +86,14 @@ class Human:
 
     def parse_input(self, human_input: str,
                     meta_chat_message: ChatMessage) -> ChatMessage:
-        r"""Parses the user's input and returns a `ChatMessage` object.
+        r"""解析用户的输入，并返回对应的 ChatMessage 对象。
 
-        Args:
-            human_input (str): The user's input.
-            meta_chat_message (ChatMessage): A `ChatMessage` object.
+        参数 (Args):
+            human_input (str): 用户的输入信息。
+            meta_chat_message (ChatMessage): 一个基础的 ChatMessage 对象。
 
-        Returns:
-            ChatMessage: A `ChatMessage` object.
+        返回 (Returns):
+            ChatMessage: 携带人类回复内容的 ChatMessage 对象。
         """
         if self.options_dict[human_input] == self.input_button:
             meta_chat_message.content = input(self.logger_color +
@@ -108,14 +106,13 @@ class Human:
             return meta_chat_message
 
     def step(self, messages: Sequence[ChatMessage]) -> ChatMessage:
-        r"""Performs one step of the conversation by displaying options to the
-        user, getting their input, and parsing their choice.
+        r"""执行一次会话交互：向用户显示选项，获取输入，并解析用户的选择。
 
-        Args:
-            messages (Sequence[ChatMessage]): A list of ChatMessage objects.
+        参数 (Args):
+            messages (Sequence[ChatMessage]): 一组 ChatMessage 对象列表。
 
-        Returns:
-            ChatMessage: A `ChatMessage` object representing the user's choice.
+        返回 (Returns):
+            ChatMessage: 代表用户最终选择结果的 ChatMessage 对象。
         """
         meta_chat_message = ChatMessage(
             role_name=messages[0].role_name,

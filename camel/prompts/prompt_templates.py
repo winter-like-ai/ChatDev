@@ -19,12 +19,11 @@ from camel.typing import RoleType, TaskType
 
 
 class PromptTemplateGenerator:
-    r"""A class for generating prompt templates for tasks.
+    r"""用于生成任务提示模板的类。
 
-    Args:
+    参数 (Args):
         task_prompt_template_dict (TaskPromptTemplateDict, optional):
-            A dictionary of task prompt templates for each task type. If not
-            provided, an empty dictionary is used as default.
+            按任务类型分类的任务提示模板字典。如果没有提供，则默认使用一个空字典。
     """
 
     def __init__(
@@ -34,19 +33,17 @@ class PromptTemplateGenerator:
         self.task_prompt_template_dict = (task_prompt_template_dict or TaskPromptTemplateDict())
 
     def get_prompt_from_key(self, task_type: TaskType, key: Any) -> TextPrompt:
-        r"""Generates a text prompt using the specified :obj:`task_type` and
-        :obj:`key`.
+        r"""使用指定的 :obj:`task_type` 和 :obj:`key` 生成文本提示。
 
-        Args:
-            task_type (TaskType): The type of task.
-            key (Any): The key used to generate the prompt.
+        参数 (Args):
+            task_type (TaskType): 任务的类型。
+            key (Any): 用于生成提示的键。
 
-        Returns:
-            TextPrompt: The generated text prompt.
+        返回 (Returns):
+            TextPrompt: 生成的文本提示。
 
-        Raises:
-            KeyError: If failed to generate prompt using the specified
-                :obj:`task_type` and :obj:`key`.
+        抛出异常 (Raises):
+            KeyError: 如果使用指定的 :obj:`task_type` 和 :obj:`key` 生成提示失败。
         """
         try:
             print(task_type, key)
@@ -61,20 +58,17 @@ class PromptTemplateGenerator:
         task_type: TaskType,
         role_type: RoleType,
     ) -> TextPrompt:
-        r"""Generates a text prompt for the system role, using the specified
-        :obj:`task_type` and :obj:`role_type`.
+        r"""使用指定的 :obj:`task_type` 和 :obj:`role_type` 为系统角色生成文本提示。
 
-        Args:
-            task_type (TaskType): The type of task.
-            role_type (RoleType): The type of role, either "USER" or
-                "ASSISTANT".
+        参数 (Args):
+            task_type (TaskType): 任务的类型。
+            role_type (RoleType): 角色的类型，"USER" 或 "ASSISTANT"。
 
-        Returns:
-            TextPrompt: The generated text prompt.
+        返回 (Returns):
+            TextPrompt: 生成的文本提示。
 
-        Raises:
-            KeyError: If failed to generate prompt using the specified
-                :obj:`task_type` and :obj:`role_type`.
+        抛出异常 (Raises):
+            KeyError: 如果使用指定的 :obj:`task_type` 和 :obj:`role_type` 生成提示失败。
         """
         try:
             return self.get_prompt_from_key(task_type, role_type)
@@ -92,13 +86,13 @@ class PromptTemplateGenerator:
         self,
         task_type: TaskType,
     ) -> TextPrompt:
-        r"""Gets the prompt for generating tasks for a given task type.
+        r"""获取针对给定任务类型用于生成子任务的提示。
 
-        Args:
-            task_type (TaskType): The type of the task.
+        参数 (Args):
+            task_type (TaskType): 任务的类型。
 
-        Returns:
-            TextPrompt: The generated prompt for generating tasks.
+        返回 (Returns):
+            TextPrompt: 用于生成任务的文本提示。
         """
         return self.get_prompt_from_key(task_type, "generate_tasks")
 
@@ -106,12 +100,12 @@ class PromptTemplateGenerator:
         self,
         task_type: TaskType,
     ) -> TextPrompt:
-        r"""Gets the prompt for specifying a task for a given task type.
+        r"""获取针对给定任务类型用于细化（说明）任务的提示。
 
-        Args:
-            task_type (TaskType): The type of the task.
+        参数 (Args):
+            task_type (TaskType): 任务的类型。
 
-        Returns:
-            TextPrompt: The generated prompt for specifying a task.
+        返回 (Returns):
+            TextPrompt: 用于说明任务的文本提示。
         """
         return self.get_prompt_from_key(task_type, "task_specify_prompt")

@@ -4,6 +4,7 @@ import numpy as np
 
 
 def prompt_cost(model_type: str, num_prompt_tokens: float, num_completion_tokens: float):
+    """计算大语言模型调用的凭证花费 (Token cost)。"""
     input_cost_map = {
         "gpt-3.5-turbo": 0.0005,
         "gpt-3.5-turbo-16k": 0.003,
@@ -37,6 +38,9 @@ def prompt_cost(model_type: str, num_prompt_tokens: float, num_completion_tokens
 
 
 def get_info(dir, log_filepath):
+    """
+    爬取并返回给定目录及日志中的各类统计信息（如代码行数、文件数、成本等）。
+    """
     print("dir:", dir)
 
     model_type = ""

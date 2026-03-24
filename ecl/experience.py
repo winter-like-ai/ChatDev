@@ -9,6 +9,7 @@ from utils import get_easyDict_from_filepath,OpenAIModel,log_and_print_online
 from embedding import OpenAIEmbedding
 sys.path.append(os.path.join(os.getcwd(),"ecl"))
 class Shortcut:
+    """定义一条捷径(Shortcut)经验，即从 sourceMID 状态跳转到 targetMID 状态。"""
     def __init__(self, sourceMID, targetMID, valueGain,instructionStar,edgeIDPath):
         self.sourceMID = sourceMID
         self.targetMID = targetMID
@@ -21,6 +22,7 @@ class Shortcut:
         return "{} -> {}  valueGain={:.6f} len(instructionPath)={} instructionStar={}".format(self.sourceMID, self.targetMID, self.valueGain, len(self.edgeIDPath), self.instructionStar[:100].replace("\n", ""))
 
 class Experience:
+    """管理构建经验的过程，以及相应的图评估与经验提取方法。"""
     def __init__(self, graph: Graph, directory: str):
         cfg = get_easyDict_from_filepath("./ecl/config.yaml")
         self.graph: Graph = graph
@@ -42,6 +44,7 @@ class Experience:
             node.value = 1.0
 
     def reap_zombie(self):
+        """修剪图中的僵尸节点与边（不在最短路径上的孤立分支）。"""
 
         pathNodes, pathEdges = self.graph.find_shortest_path()
 
@@ -60,6 +63,7 @@ class Experience:
         log_and_print_online(log_zombienodes)
 
     def estimate(self):
+        """对图中的节点进行两两评估，计算其质量价值(Value)。"""
         if len(self.graph.edges) == 0:
             return
 
@@ -81,12 +85,14 @@ class Experience:
         log_and_print_online("Init value:"+ str({mid: self.graph.nodes[mid].value for mid in self.graph.nodes.keys()})+"\n\nEstimated value:"+str({mid: self.graph.nodes[mid].value for mid in self.graph.nodes.keys()}))
 
     def get_cosine_similarity(self, embeddingi, embeddingj):
+        """计算两个特征向量之间的余弦相似度。"""
         embeddingi = np.array(embeddingi)
         embeddingj = np.array(embeddingj)
         cos_sim = embeddingi.dot(embeddingj) / (np.linalg.norm(embeddingi) * np.linalg.norm(embeddingj))
         return cos_sim
 
     def _pairwise_estimate(self, vi: Node, vj: Node):
+        """对节点 vi 演进到节点 vj 的过程进行打分/权重估算，结合了代码通过性、特征相似度等因素。"""
 
         if vi.value == 0.0:
             return 0.0
@@ -154,6 +160,7 @@ class Experience:
         #return distance_weight * compile_weight * degree_weight
 
     def get_transitive_closure(self):
+        """采用 Warshall 算法计算图中节点连通性的传递闭包矩阵。"""
         def print_matrix(matrix):
             for nodei in matrix.keys():
                 for nodej in matrix.keys():
@@ -187,6 +194,7 @@ class Experience:
         return matrix
 
     def extract_thresholded_experiences(self):
+        """提取满足阈值、无缺陷且具有较高增益的开发经验(Shortcuts)，并通过 GPT 总结出经验指令(instructionStar)。"""
         if len(self.graph.edges) == 0:
             return []
         if len(self.graph.nodes) < 2:
@@ -305,6 +313,7 @@ External Libraries and Dependencies: If the implementation requires external lib
 
         return experiences
     def to_dict(self):
+        """将提取到的所有经验转换为字典列表形式，便于序列化存储。"""
         merged_data = []
         for index, ex in enumerate(self.experiences):
             merged_data.append(ex.__dict__)

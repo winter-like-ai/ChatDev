@@ -9,6 +9,10 @@ eliminate_threshold = 0.95
 
 
 def retrieve_eliminate(Path_directory,UsedMemory_directory,Evolved_directory):
+    """
+    基于经验(Experience)使用次数的淘汰机制：
+    筛选并淘汰使用次数较少（排名靠后）的经验，将保留的经验更新到 Evolved_directory 中。
+    """
     experiences_use = []
     content = []
     content1 = []
@@ -86,6 +90,10 @@ def retrieve_eliminate(Path_directory,UsedMemory_directory,Evolved_directory):
 
 # Quality score gain Elimination
 def gain_eliminate(NewMemory_directory,Evolved_directory):
+    """
+    基于质量得分增益(Quality score gain)的淘汰机制：
+    筛选出测试增益(valueGain)大于等于阈值(eliminate_threshold)的经验并保留，然后附加到现有演化后的记忆中。
+    """
     content2 = []
     with open(NewMemory_directory) as file:
         content2 = json.load(file)
@@ -119,6 +127,9 @@ def gain_eliminate(NewMemory_directory,Evolved_directory):
 
 
 def recount_experience(Evolved_directory):
+    """
+    对演化后的记忆文件中的所有经验块重新编号（用于更新统计 total 值）。
+    """
     with open(Evolved_directory, 'r') as file:
         content = json.load(file)
 

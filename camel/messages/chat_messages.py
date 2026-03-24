@@ -28,18 +28,17 @@ except ImportError:
 
 @dataclass
 class ChatMessage(BaseMessage):
-    r"""Base class for chat messages used in CAMEL chat system.
+    r"""CAMEL 聊天系统中使用的聊天消息的基类。
 
-    Args:
-        role_name (str): The name of the user or assistant role.
-        role_type (RoleType): The type of role, either
-            :obj:`RoleType.ASSISTANT` or :obj:`RoleType.USER`.
-        meta_dict (Optional[Dict[str, str]]): Additional metadata dictionary
-            for the message.
-        role (str): The role of the message in OpenAI chat system.
-        content (str): The content of the message. (default: :obj:`""`)
-        refusal (str): The refusal to build argument.
-        audio (object): The audio contains data about the audio response from the model.
+    参数 (Args):
+        role_name (str): 用户或助手角色的名称。
+        role_type (RoleType): 角色类型，可以是
+            :obj:`RoleType.ASSISTANT` 或 :obj:`RoleType.USER`。
+        meta_dict (Optional[Dict[str, str]]): 消息的附加元数据字典。
+        role (str): 消息在 OpenAI 聊天系统中的角色。
+        content (str): 消息的内容。 (默认: :obj:`""`)
+        refusal (str): 用于构建拒绝回复的参数。
+        audio (object): 包含模型音频回复数据的音频对象。
     """
     role_name: str
     role_type: RoleType
@@ -65,20 +64,17 @@ class ChatMessage(BaseMessage):
 
 @dataclass
 class AssistantChatMessage(ChatMessage):
-    r"""Class for chat messages from the assistant role used in CAMEL chat
-    system.
+    r"""CAMEL 聊天系统中助手(Assistant)角色的聊天消息类。
 
-    Attributes:
-        role_name (str): The name of the assistant role.
-        role_type (RoleType): The type of role, always
-            :obj:`RoleType.ASSISTANT`.
-        meta_dict (Optional[Dict[str, str]]): Additional metadata dictionary
-            for the message.
-        role (str): The role of the message in OpenAI chat system.
-            (default: :obj:`"assistant"`)
-        content (str): The content of the message. (default: :obj:`""`)
-        refusal (str): The refusal to build argument.
-        audio (object): The audio contains data about the audio response from the model.
+    属性 (Attributes):
+        role_name (str): 助手角色的名称。
+        role_type (RoleType): 角色类型，始终为 :obj:`RoleType.ASSISTANT`。
+        meta_dict (Optional[Dict[str, str]]): 消息的附加元数据字典。
+        role (str): 消息在 OpenAI 聊天系统中的角色。
+            (默认: :obj:`"assistant"`)
+        content (str): 消息的内容。 (默认: :obj:`""`)
+        refusal (str): 用于构建拒绝回复的参数。
+        audio (object): 包含模型音频回复数据的音频对象。
     """
     role_name: str
     role_type: RoleType = RoleType.ASSISTANT
@@ -91,18 +87,17 @@ class AssistantChatMessage(ChatMessage):
 
 @dataclass
 class UserChatMessage(ChatMessage):
-    r"""Class for chat messages from the user role used in CAMEL chat system.
+    r"""CAMEL 聊天系统中用户(User)角色的聊天消息类。
 
-    Args:
-        role_name (str): The name of the user role.
-        role_type (RoleType): The type of role, always :obj:`RoleType.USER`.
-        meta_dict (Optional[Dict[str, str]]): Additional metadata dictionary
-            for the message.
-        role (str): The role of the message in OpenAI chat system.
-            (default: :obj:`"user"`)
-        content (str): The content of the message. (default: :obj:`""`)
-        refusal (str): The refusal to build argument.
-        audio (object): The audio contains data about the audio response from the model.
+    参数 (Args):
+        role_name (str): 用户角色的名称。
+        role_type (RoleType): 角色类型，始终为 :obj:`RoleType.USER`。
+        meta_dict (Optional[Dict[str, str]]): 消息的附加元数据字典。
+        role (str): 消息在 OpenAI 聊天系统中的角色。
+            (默认: :obj:`"user"`)
+        content (str): 消息的内容。 (默认: :obj:`""`)
+        refusal (str): 用于构建拒绝回复的参数。
+        audio (object): 包含模型音频回复数据的音频对象。
     """
     role_name: str
     role_type: RoleType = RoleType.USER

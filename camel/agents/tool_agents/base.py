@@ -15,12 +15,11 @@ from camel.agents import BaseAgent
 
 
 class BaseToolAgent(BaseAgent):
-    r"""Creates a :obj:`BaseToolAgent` object with the specified name and
-        description.
+    r"""使用指定的名称和描述创建一个 :obj:`BaseToolAgent` 对象。
 
-    Args:
-        name (str): The name of the tool agent.
-        description (str): The description of the tool agent.
+    参数 (Args):
+        name (str): 工具代理(tool agent)的名称。
+        description (str): 工具代理的描述。
     """
 
     def __init__(self, name: str, description: str) -> None:

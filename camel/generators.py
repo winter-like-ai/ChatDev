@@ -19,16 +19,16 @@ from camel.typing import RoleType, TaskType
 
 
 class SystemMessageGenerator:
-    r"""System message generator for agents.
+    r"""为代理(Agent)生成系统消息(System message)的生成器类。
 
-    Args:
-        task_type (TaskType, optional): The task type.
-            (default: :obj:`TaskType.AI_SOCIETY`)
-        sys_prompts (Optional[Dict[RoleType, str]], optional): The prompts of
-            the system messages for each role type. (default: :obj:`None`)
-        sys_msg_meta_dict_keys (Optional[Set[str]], optional): The set of keys
-            of the meta dictionary used to fill the prompts.
-            (default: :obj:`None`)
+    参数 (Args):
+        task_type (TaskType, optional): 任务类型。
+            (默认: :obj:`TaskType.AI_SOCIETY`)
+        sys_prompts (Optional[Dict[RoleType, str]], optional): 每个角色类型的系统消息
+            提示词(prompts)字典。 (默认: :obj:`None`)
+        sys_msg_meta_dict_keys (Optional[Set[str]], optional): 用于填充提示词的
+            元数据(meta dictionary)的键集合。
+            (默认: :obj:`None`)
     """
 
     def __init__(
@@ -82,10 +82,10 @@ class SystemMessageGenerator:
             self.sys_prompts[RoleType.DEFAULT] = "You are a helpful assistant."
 
     def validate_meta_dict_keys(self, meta_dict: Dict[str, str]) -> None:
-        r"""Validates the keys of the meta_dict.
+        r"""验证元数据字典(meta_dict)的键是否合法。
 
-        Args:
-            meta_dict (Dict[str, str]): The dictionary to validate.
+        参数 (Args):
+            meta_dict (Dict[str, str]): 待验证的字典。
         """
         if not set(meta_dict.keys()).issubset(self.sys_msg_meta_dict_keys):
             raise ValueError("The keys of the meta_dict should be in "
@@ -97,16 +97,15 @@ class SystemMessageGenerator:
         meta_dict: Dict[str, str],
         role_tuple: Tuple[str, RoleType] = ("", RoleType.DEFAULT),
     ) -> SystemMessageType:
-        r"""Generates a system message from a dictionary.
+        r"""根据字典生成单条系统消息。
 
-        Args:
-            meta_dict (Dict[str, str]): The dictionary containing the
-                information to generate the system message.
-            role_tuple (Tuple[str, RoleType], optional): The tuple containing
-                the role name and role type. (default: ("", RoleType.DEFAULT))
+        参数 (Args):
+            meta_dict (Dict[str, str]): 包含生成系统消息所需信息的字典。
+            role_tuple (Tuple[str, RoleType], optional): 包含角色名称及其类型的元组。
+                (默认: ("", RoleType.DEFAULT))
 
-        Returns:
-            SystemMessageType: The generated system message.
+        返回 (Returns):
+            SystemMessageType: 生成的系统消息对象。
         """
         self.validate_meta_dict_keys(meta_dict)
         role_name, role_type = role_tuple
@@ -121,20 +120,17 @@ class SystemMessageGenerator:
         meta_dicts: List[Dict[str, str]],
         role_tuples: Tuple[str, str],
     ) -> List[SystemMessageType]:
-        r"""Generates a list of system messages from a list of dictionaries.
+        r"""根据字典列表生成多条系统消息。
 
-        Args:
-            meta_dicts (List[Dict[str, str]]): A list of dictionaries
-                containing the information to generate the system messages.
-            role_tuples (List[Tuple[str, RoleType]]): A list of tuples
-                containing the role name and role type for each system message.
+        参数 (Args):
+            meta_dicts (List[Dict[str, str]]): 包含生成系统消息所需信息的字典列表。
+            role_tuples (List[Tuple[str, RoleType]]): 包含每个系统消息角色名称和角色类型的元组列表。
 
-        Returns:
-            List[SystemMessageType]: A list of generated system messages.
+        返回 (Returns):
+            List[SystemMessageType]: 生成的系统消息列表。
 
-        Raises:
-            ValueError: If the number of meta_dicts and role_tuples are
-                different.
+        抛出异常 (Raises):
+            ValueError: 当 meta_dicts 和 role_tuples 数量不一致时抛出。
         """
         if len(meta_dicts) != len(role_tuples):
             raise ValueError(

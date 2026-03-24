@@ -32,15 +32,14 @@ def count_tokens_openai_chat_models(
         messages: List[OpenAIMessage],
         encoding: Any,
 ) -> int:
-    r"""Counts the number of tokens required to generate an OpenAI chat based
-    on a given list of messages.
+    r"""基于给定的消息列表计算生成 OpenAI 聊天请求所需的 token 数量。
 
-    Args:
-        messages (List[OpenAIMessage]): The list of messages.
-        encoding (Any): The encoding method to use.
+    参数 (Args):
+        messages (List[OpenAIMessage]): 消息列表。
+        encoding (Any): 使用的编码方法。
 
-    Returns:
-        int: The number of tokens required.
+    返回 (Returns):
+        int: 所需的 token 数量。
     """
     num_tokens = 0
     for message in messages:
@@ -58,20 +57,19 @@ def num_tokens_from_messages(
         messages: List[OpenAIMessage],
         model: ModelType,
 ) -> int:
-    r"""Returns the number of tokens used by a list of messages.
+    r"""返回一个消息列表使用的 token 数量。
 
-    Args:
-        messages (List[OpenAIMessage]): The list of messages to count the
-            number of tokens for.
-        model (ModelType): The OpenAI model used to encode the messages.
+    参数 (Args):
+        messages (List[OpenAIMessage]): 要计算 token 数量的消息列表。
+        model (ModelType): 用于对消息进行编码的 OpenAI 模型。
 
-    Returns:
-        int: The total number of tokens used by the messages.
+    返回 (Returns):
+        int: 消息使用的总 token 数量。
 
-    Raises:
-        NotImplementedError: If the specified `model` is not implemented.
+    抛出异常 (Raises):
+        NotImplementedError: 如果指定的 `model` 尚未实现此功能。
 
-    References:
+    参考文献 (References):
         - https://github.com/openai/openai-python/blob/main/chatml.md
         - https://platform.openai.com/docs/models/gpt-4
         - https://platform.openai.com/docs/models/gpt-3-5
@@ -106,13 +104,13 @@ def num_tokens_from_messages(
 
 
 def get_model_token_limit(model: ModelType) -> int:
-    r"""Returns the maximum token limit for a given model.
+    r"""返回给定模型的最大 token 限制。
 
-    Args:
-        model (ModelType): The type of the model.
+    参数 (Args):
+        model (ModelType): 模型类型。
 
-    Returns:
-        int: The maximum token limit for the given model.
+    返回 (Returns):
+        int: 给定模型的最大 token 限制。
     """
     if model == ModelType.GPT_3_5_TURBO:
         return 16384
@@ -135,18 +133,16 @@ def get_model_token_limit(model: ModelType) -> int:
 
 
 def openai_api_key_required(func: F) -> F:
-    r"""Decorator that checks if the OpenAI API key is available in the
-    environment variables.
+    r"""检查环境变量中是否提供了 OpenAI API 密钥的装饰器。
 
-    Args:
-        func (callable): The function to be wrapped.
+    参数 (Args):
+        func (callable): 要包装的函数。
 
-    Returns:
-        callable: The decorated function.
+    返回 (Returns):
+        callable: 装饰后的函数。
 
-    Raises:
-        ValueError: If the OpenAI API key is not found in the environment
-            variables.
+    抛出异常 (Raises):
+        ValueError: 如果在环境变量中未找到 OpenAI API 密钥。
     """
 
     @wraps(func)
@@ -165,14 +161,14 @@ def openai_api_key_required(func: F) -> F:
 
 
 def print_text_animated(text, delay: float = 0.005, end: str = ""):
-    r"""Prints the given text with an animated effect.
+    r"""以动画效果打印给定文本（打字机效果）。
 
-    Args:
-        text (str): The text to print.
-        delay (float, optional): The delay between each character printed.
-            (default: :obj:`0.02`)
-        end (str, optional): The end character to print after the text.
-            (default: :obj:`""`)
+    参数 (Args):
+        text (str): 要打印的文本。
+        delay (float, optional): 打印每个字符之间的延迟（以秒为单位）。
+            (默认: :obj:`0.02`)
+        end (str, optional): 在文本之后打印的结束字符。
+            (默认: :obj:`""`)
     """
     for char in text:
         print(char, end=end, flush=True)
@@ -181,16 +177,15 @@ def print_text_animated(text, delay: float = 0.005, end: str = ""):
 
 
 def get_prompt_template_key_words(template: str) -> Set[str]:
-    r"""Given a string template containing curly braces {}, return a set of
-    the words inside the braces.
+    r"""给定一个包含大括号 {} 的字符串模板，返回括号内单词的集合。
 
-    Args:
-        template (str): A string containing curly braces.
+    参数 (Args):
+        template (str): 包含大括号的字符串。
 
-    Returns:
-        List[str]: A list of the words inside the curly braces.
+    返回 (Returns):
+        List[str]: 大括号内单词的列表/集合。
 
-    Example:
+    示例 (Example):
         >>> get_prompt_template_key_words('Hi, {name}! How are you {status}?')
         {'name', 'status'}
     """
@@ -198,16 +193,15 @@ def get_prompt_template_key_words(template: str) -> Set[str]:
 
 
 def get_first_int(string: str) -> Optional[int]:
-    r"""Returns the first integer number found in the given string.
+    r"""返回在给定字符串中找到的第一个整数。
 
-    If no integer number is found, returns None.
+    如果未找到整数，则返回 None。
 
-    Args:
-        string (str): The input string.
+    参数 (Args):
+        string (str): 输入的字符串。
 
-    Returns:
-        int or None: The first integer number found in the string, or None if
-            no integer number is found.
+    返回 (Returns):
+        int or None: 在字符串中找到的第一个整数，如果未找到则返回 None。
     """
     match = re.search(r'\d+', string)
     if match:
@@ -217,6 +211,15 @@ def get_first_int(string: str) -> Optional[int]:
 
 
 def download_tasks(task: TaskType, folder_path: str) -> None:
+    r"""从远程 URL 下载任务数据的 zip 文件并解压至指定文件夹，随后清理压缩包。
+
+    参数 (Args):
+        task (TaskType): 要下载的任务类型对象。
+        folder_path (str): 压缩包解压后保存的目标文件夹路径。
+
+    返回 (Returns):
+        None
+    """
     # Define the path to save the zip file
     zip_file_path = os.path.join(folder_path, "tasks.zip")
 

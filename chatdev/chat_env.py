@@ -31,12 +31,12 @@ class ChatEnvConfig:
                  incremental_develop,
                  background_prompt,
                  with_memory):
-        self.clear_structure = clear_structure  # Whether to clear non-software files in the WareHouse and cache files in generated software path
-        self.gui_design = gui_design  # Encourage ChatDev generate software with GUI
-        self.git_management = git_management  # Whether to use git to manage the creation and changes of generated software
-        self.incremental_develop = incremental_develop  # Whether to use incremental develop on an existing project
-        self.background_prompt = background_prompt  # background prompt that will be added to every inquiry to LLM
-        self.with_memory = with_memory # Wheter to use memroy in the interaction between agents
+        self.clear_structure = clear_structure  # 是否清除WareHouse中非软件文件以及生成软件路径中的缓存文件 (Whether to clear non-software files...)
+        self.gui_design = gui_design  # 是否鼓励 ChatDev 生成带图形界面(GUI)的软件
+        self.git_management = git_management  # 是否使用 git 版本控制来管理生成软件的创建和变更
+        self.incremental_develop = incremental_develop  # 是否对现有项目进行增量开发
+        self.background_prompt = background_prompt  # 背景提示词，将添加到对LLM的每次询问中
+        self.with_memory = with_memory # 在代理的交互之间是否使用记忆体(memory)
 
     def __str__(self):
         string = ""
@@ -80,6 +80,9 @@ class ChatEnv:
                 log_visualize("**[CMD Execute]**\n\n[CMD] pip install {}".format(module))
 
     def set_directory(self, directory):
+        """
+        设置当前环境的工作目录，并在工作目录不存在时进行创建或复制操作。
+        """
         assert len(self.env_dict['directory']) == 0
         self.env_dict['directory'] = directory
         self.codes.directory = directory
@@ -98,6 +101,9 @@ class ChatEnv:
             os.mkdir(self.env_dict['directory'])
     
     def init_memory(self):
+        """
+        初始化环境变量中的记忆模块(Memory)。
+        """
         self.memory.id_enabled = True
         self.memory.directory = os.path.join(os.getcwd(),"ecl","memory")
         if not os.path.exists(self.memory.directory):
@@ -105,6 +111,11 @@ class ChatEnv:
         self.memory.upload()
 
     def exist_bugs(self) -> tuple[bool, str]:
+        """
+        运行软件代码以检查是否存在 Bug/错误。
+        
+        返回 (Returns): (是否存在Bug, 具体错误信息或成功提示)
+        """
         directory = self.env_dict['directory']
 
         success_info = "The software run successfully without errors."
@@ -157,6 +168,7 @@ class ChatEnv:
         return False, success_info
 
     def recruit(self, agent_name: str):
+        """招募指定名称的代理(Agent)到花名册(Roster)中。"""
         self.roster._recruit(agent_name)
 
     def exist_employee(self, agent_name: str) -> bool:
@@ -193,6 +205,10 @@ class ChatEnv:
         self.manuals._rewrite_docs()
 
     def write_meta(self) -> None:
+        """
+        写出该次项目的元数据至 `meta.txt`
+        包括：任务Prompt，配置信息，参演角色名单，使用的语言等
+        """
         directory = self.env_dict['directory']
 
         if not os.path.exists(directory):

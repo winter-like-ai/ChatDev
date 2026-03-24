@@ -12,6 +12,7 @@ client = OpenAI(
 )
 
 def getFilesFromType(sourceDir, filetype):
+    """获取指定目录下所有该后缀类型的文件列表。"""
     files = []
     for root, directories, filenames in os.walk(sourceDir):
         for filename in filenames:
@@ -40,6 +41,7 @@ def get_code(directory):
     return code.strip()
 
 def get_completeness(directory):
+    """验证软件完整性 (基于代码内容是否含有pass/todo等占位)。"""
     assert os.path.isdir(directory)
     vn = get_code(directory)
     lines = vn.split("\n")
@@ -51,6 +53,7 @@ def get_completeness(directory):
     return 1.0
 
 def get_executability(directory):
+    """评估软件代码能否无报错地正常执行。"""
     assert os.path.isdir(directory)
     def findFile(directory, target):
         main_py_path = None
@@ -113,6 +116,7 @@ def get_executability(directory):
     return 0.0
 
 def get_consistency(directory):
+    """利用OpenAI Embedding进行代码与提示词(Task)一致性/对齐性测算。"""
     def remove_comments(string):
         def remove_comments_by_regex(string, regex):
             lines = string.split("\n")

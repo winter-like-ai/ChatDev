@@ -51,6 +51,12 @@ class Codes:
         return code
 
     def _update_codes(self, generated_content):
+        """
+        根据生成的 markdown 内容更新代码簿 (codebooks)。
+        
+        参数 (Args):
+            generated_content: 包含代码的 markdown 字符串
+        """
         new_codes = Codes(generated_content)
         differ = difflib.Differ()
         for key in new_codes.codebooks.keys():
@@ -74,6 +80,13 @@ class Codes:
                 self.codebooks[key] = new_codes.codebooks[key]
 
     def _rewrite_codes(self, git_management, phase_info=None) -> None:
+        """
+        将代码簿中的代码写入到文件系统中，并根据需要通过 Git 进行版本控制。
+        
+        参数 (Args):
+            git_management: 是否使用 git 管理
+            phase_info: 当前阶段的信息，用于 git commit msg
+        """
         directory = self.directory
         rewrite_codes_content = "**[Rewrite Codes]**\n\n"
         if os.path.exists(directory) and len(os.listdir(directory)) > 0:
@@ -120,6 +133,11 @@ class Codes:
             log_visualize(log_git_info)
 
     def _get_codes(self) -> str:
+        """
+        将代码簿中的所有代码格式化为单一的 markdown 字符串。
+        
+        返回 (Returns): 格式化后的代码字符串
+        """
         content = ""
         for filename in self.codebooks.keys():
             content += "{}\n```{}\n{}\n```\n\n".format(filename,
@@ -128,6 +146,12 @@ class Codes:
         return content
 
     def _load_from_hardware(self, directory) -> None:
+        """
+        从指定的硬件目录加载已有的 Python 代码文件到代码簿中。
+        
+        参数 (Args):
+            directory: 包含 Python 文件的目录路径
+        """
         assert len([filename for filename in os.listdir(directory) if filename.endswith(".py")]) > 0
         for root, directories, filenames in os.walk(directory):
             for filename in filenames:

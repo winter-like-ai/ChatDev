@@ -23,6 +23,7 @@ else:
     BASE_URL = None
 
 def getFilesFromType(sourceDir, filetype):
+    """获取指定目录下某类型特征(后缀)的所有文件路径列表。"""
     files = []
     for root, directories, filenames in os.walk(sourceDir):
         for filename in filenames:
@@ -31,11 +32,13 @@ def getFilesFromType(sourceDir, filetype):
     return files
 
 def cmd(command: str):
+    """通过子进程执行 Shell 命令并返回标准输出文本。"""
     print(">> {}".format(command))
     text = subprocess.run(command, shell=True, text=True, stdout=subprocess.PIPE).stdout
     return text
 
 def get_easyDict_from_filepath(path: str):
+    """读取指定路径下的 JSON 或 YAML 配置文件，并转换成 EasyDict 对象以链式访问。"""
     # print(path)
     if path.endswith('.json'):
         with open(path, 'r', encoding="utf-8") as file:
@@ -51,6 +54,7 @@ def get_easyDict_from_filepath(path: str):
 
 
 def calc_max_token(messages, model):
+    """使用 tiktoken 根据消息列表和给定模型计算剩余可用于补全的最大 token 数量。"""
     string = "\n".join([message["content"] for message in messages])
     encoding = tiktoken.encoding_for_model(model)
     num_prompt_tokens = len(encoding.encode(string))
@@ -74,24 +78,23 @@ def calc_max_token(messages, model):
 
 
 class ModelBackend(ABC):
-    r"""Base class for different model backends.
-    May be OpenAI API, a local LLM, a stub for unit tests, etc."""
+    r"""模型后端的基类接口。
+    可以是 OpenAI API、本地 LLM 或者用于单元测试的桩对象。"""
 
     @abstractmethod
     def run(self, *args, **kwargs) -> Dict[str, Any]:
-        r"""Runs the query to the backend model.
+        r"""向后端模型发起查询并运行请求。
 
-        Raises:
-            RuntimeError: if the return value from OpenAI API
-            is not a dict that is expected.
+        抛出异常 (Raises):
+            RuntimeError: 如果 OpenAI API 的返回值并非预期的字典类型。
 
-        Returns:
-            Dict[str, Any]: All backends must return a dict in OpenAI format.
+        返回 (Returns):
+            Dict[str, Any]: 所有后端必须返回类似 OpenAI 返回格式的字典对象。
         """
         pass
 
 class OpenAIModel(ModelBackend):
-    r"""OpenAI API in a unified ModelBackend interface."""
+    r"""封装为统一 ModelBackend 接口的 OpenAI API 类。"""
 
     def __init__(self, model_type, model_config_dict: Dict=None) -> None:
         super().__init__()
@@ -172,9 +175,11 @@ class OpenAIModel(ModelBackend):
 
     
 def now():
+    """获取并返回当前时间的字符串格式（如 YYYYMMDDHHMMSS）。"""
     return time.strftime("%Y%m%d%H%M%S", time.localtime())
 
 def log_and_print_online(content=None):
+    """将指定内容打印至控制台并行记录到日志中。"""
     if  content is not None:
         print(content)
         logging.info(content)

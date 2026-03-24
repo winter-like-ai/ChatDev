@@ -150,14 +150,14 @@ class AllMemory(MemoryBase):
 
     def search_text(self, code_query, k:int):
         """
-        search instructionStar from a code query
+        根据代码查询 (code_query) 搜索到最匹配的经验指令 (instructionStar)。
         
-        Keyword arguments:
-        code_query -- code input
-        k -- the number of instructions to search 
+        参数 (Keyword arguments):
+        code_query -- 代码输入字符串 (code input)
+        k -- 需要搜索反馈的指令数量
         
-        Return: 
-        (best k instructionStar, k)
+        返回 (Return): 
+        (best k instructionStar, similarities, sourceMIDS, task_list, task_dir_list)
         """
 
         
@@ -210,12 +210,13 @@ class AllMemory(MemoryBase):
             return instructionStar_list, filtered_similarities, sourceMIDS, task_list, task_dir_list
 
     def search_code(self, text_query, k:int):
-        """search best code from a text query
+        """根据文本查询 (text_query) 搜索到最匹配的示例代码 (code)。
         
-        Keyword arguments:
-        text_query -- text input
-        k -- the number of code to search 
-        Return: (best k code, k)
+        参数 (Keyword arguments):
+        text_query -- 文本输入的查询字符串 (text input)
+        k -- 需要搜索反馈的代码数量 
+        返回 (Return): 
+        (best k code, similarities, targetMIDs, task_list, task_dir_list)
         """
 
         if self._get_memory_count() == 0 or text_query == None or k == 0:
@@ -282,6 +283,7 @@ class AllMemory(MemoryBase):
 
 
 class Memory:
+    """管理及持久化全局记忆的对外接口类。"""
     def __init__(self):
         self.directory: str = None
         self.id_enabled : bool = False
@@ -334,6 +336,7 @@ class Memory:
 
     # create memory path and upload memory from existed memory             
     def upload(self):
+        """创建记忆存储目录，并将其挂载/配置至当前可用内存中。"""
         self.directory = os.path.join(os.getcwd(),"ecl","memory")
         if os.path.exists(self.directory) is False:
             os.mkdir(self.directory)
@@ -344,6 +347,7 @@ class Memory:
 
     # upload experience into memory 
     def upload_from_experience(self, experience):
+        """从完成的 Experience 对象中提取数据并更新至本地记忆文件 (MemoryCards.json) 中。"""
         self._set_embedding(experience)
         with open(self.memory_data["All"].directory, 'w') as file:
             node_data,edge_data = experience.graph.to_dict()
@@ -398,6 +402,7 @@ class Memory:
 
     # delete memory from index 
     def delete_memroy(self,idx:int):
+        """根据索引删除本地记忆文件中的某条特定记忆数据。"""
         with open(self.memory_data["All"].directory, 'w') as file:
             merged_dic = []
             index = 0

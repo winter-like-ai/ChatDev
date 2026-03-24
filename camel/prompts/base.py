@@ -23,29 +23,26 @@ def return_prompt_wrapper(
     cls: T,
     func: Callable,
 ) -> Callable[..., Union[T, tuple]]:
-    r"""Wrapper that converts the return value of a function to an input
-    class instance if it's a string.
+    r"""将函数的返回值（如果是字符串）转换为输入类实例的包装器。
 
-    Args:
-        cls (type): The class to convert to.
-        func (Callable): The function to decorate.
+    参数 (Args):
+        cls (type): 要转换成的类。
+        func (Callable): 要装饰的函数。
 
-    Returns:
-        Callable[..., Union[T, tuple]]: Decorated function that
-            returns the decorated class instance if the return value is a
-            string.
+    返回 (Returns):
+        Callable[..., Union[T, tuple]]: 装饰后的函数，如果返回值为字符串，
+            则返回被装饰类的实例。
     """
 
     def wrapper(*args: Any, **kwargs: Any) -> Union[T, tuple]:
-        r"""Wrapper function that performs the conversion to :obj:`TextPrompt`
-            instance.
+        r"""执行转换为 :obj:`TextPrompt` 实例的包装器函数。
 
-        Args:
-            *args (Any): Variable length argument list.
-            **kwargs (Any): Arbitrary keyword arguments.
+        参数 (Args):
+            *args (Any): 可变长度参数列表。
+            **kwargs (Any): 任意关键字参数。
 
-        Returns:
-            Union[TextPrompt, tuple]: The converted return value.
+        返回 (Returns):
+            Union[TextPrompt, tuple]: 转换后的返回值。
         """
         result = func(*args, **kwargs)
         if isinstance(result, str) and not isinstance(result, cls):
@@ -65,14 +62,14 @@ def return_prompt_wrapper(
 
 
 def wrap_prompt_functions(cls: T) -> T:
-    r"""Decorator that wraps functions of a class inherited from :obj:`str`
-    with the :obj:`return_text_prompt` decorator.
+    r"""使用 :obj:`return_prompt_wrapper` 装饰器包装继承自 :obj:`str` 
+    的类的所有函数的装饰器。
 
-    Args:
-        cls (type): The class to decorate.
+    参数 (Args):
+        cls (type): 要装饰的类。
 
-    Returns:
-        type: Decorated class with wrapped functions.
+    返回 (Returns):
+        type: 包含已包装函数的被装饰类。
     """
     excluded_attrs = {'__init__', '__new__', '__str__', '__repr__'}
     for attr_name in dir(cls):
@@ -85,34 +82,31 @@ def wrap_prompt_functions(cls: T) -> T:
 
 @wrap_prompt_functions
 class TextPrompt(str):
-    r"""A class that represents a text prompt. The :obj:`TextPrompt` class
-    extends the built-in :obj:`str` class to provide a property for retrieving
-    the set of key words in the prompt.
+    r"""表示文本提示(text prompt)的类。:obj:`TextPrompt` 类扩展了内置的
+    :obj:`str` 类，提供了一个可以检索提示中关键字集合的属性。
 
-    Attributes:
-        key_words (set): A set of strings representing the key words in the
-            prompt.
+    属性 (Attributes):
+        key_words (set): 包含提示中关键字的字符串集合。
     """
 
     @property
     def key_words(self) -> Set[str]:
-        r"""Returns a set of strings representing the key words in the prompt.
+        r"""返回包含提示中关键字的字符串集合。
         """
         from camel.utils import get_prompt_template_key_words
         return get_prompt_template_key_words(self)
 
     def format(self, *args: Any, **kwargs: Any) -> 'TextPrompt':
-        r"""Overrides the built-in :obj:`str.format` method to allow for
-        default values in the format string. This is used to allow formatting
-        the partial string.
+        r"""重写内置的 :obj:`str.format` 方法，允许在格式化字符串中使用默认值。
+        此功能用于支持部分字符串的格式化。
 
-        Args:
-            *args (Any): Variable length argument list.
-            **kwargs (Any): Arbitrary keyword arguments.
+        参数 (Args):
+            *args (Any): 可变长度参数列表。
+            **kwargs (Any): 任意关键字参数。
 
-        Returns:
-            TextPrompt: A new :obj:`TextPrompt` object with the format string
-                replaced with the formatted string.
+        返回 (Returns):
+            TextPrompt: 一个新的 :obj:`TextPrompt` 对象，其中的格式字符串
+                已被格式化替换。
         """
         default_kwargs = {key: '{' + f'{key}' + '}' for key in self.key_words}
         default_kwargs.update(kwargs)
@@ -121,23 +115,23 @@ class TextPrompt(str):
 
 @wrap_prompt_functions
 class CodePrompt(TextPrompt):
-    r"""A class that represents a code prompt. It extends the :obj:`TextPrompt`
-    class with a :obj:`code_type` property.
+    r"""表示代码提示(code prompt)的类。它扩展了 :obj:`TextPrompt` 类，
+    并增加了一个 :obj:`code_type` 属性。
 
-    Args:
-        code_string (str): The code string for the prompt.
-        code_type (str, optional): The type of code. Defaults to None.
+    参数 (Args):
+        code_string (str): 提示的代码字符串。
+        code_type (str, optional): 代码的类型。默认值为 None。
     """
 
     def __new__(cls, *args: Any, **kwargs: Any) -> 'CodePrompt':
-        r"""Creates a new instance of the :obj:`CodePrompt` class.
+        r"""创建一个新的 :obj:`CodePrompt` 类实例。
 
-        Args:
-            *args (Any): Positional arguments.
-            **kwargs (Any): Keyword arguments.
+        参数 (Args):
+            *args (Any): 位置参数。
+            **kwargs (Any): 关键字参数。
 
-        Returns:
-            CodePrompt: The created :obj:`CodePrompt` instance.
+        返回 (Returns):
+            CodePrompt: 创建的 :obj:`CodePrompt` 实例。
         """
         code_type = kwargs.pop('code_type', None)
         instance = super().__new__(cls, *args, **kwargs)
@@ -146,35 +140,33 @@ class CodePrompt(TextPrompt):
 
     @property
     def code_type(self) -> Optional[str]:
-        r"""Returns the type of code.
+        r"""返回代码的类型。
 
-        Returns:
-            Optional[str]: The type of code.
+        返回 (Returns):
+            Optional[str]: 代码的类型。
         """
         return self._code_type
 
     def set_code_type(self, code_type: str) -> None:
-        r"""Sets the type of code.
+        r"""设置代码的类型。
 
-        Args:
-            code_type (str): The type of code.
+        参数 (Args):
+            code_type (str): 代码的类型。
         """
         self._code_type = code_type
 
     def execute(
             self,
             global_vars: Optional[Dict] = None) -> Tuple[str, Optional[Dict]]:
-        r"""Executes the code string. If there is an error, the error is caught
-        and the traceback is returned. Otherwise, the output string and local
-        variables are returned.
+        r"""执行代码字符串。如果发生错误，错误将被捕获并返回 traceback。
+        否则，将返回输出字符串和局部变量。
 
-        Args:
-            global_vars (Dict, optional): Global variables to be used during
-                code execution. (default: :obj:`None`)
+        参数 (Args):
+            global_vars (Dict, optional): 代码执行期间要使用的全局变量。
+                (默认: :obj:`None`)
 
-        Returns:
-            Tuple[str, Optional[Dict]]: A tuple containing the output string
-                and local variables.
+        返回 (Returns):
+            Tuple[str, Optional[Dict]]: 包含输出字符串和局部变量的元组。
         """
         # NOTE: Only supports Python code for now.
         try:
@@ -207,7 +199,7 @@ class CodePrompt(TextPrompt):
 
 # flake8: noqa :E501
 class TextPromptDict(Dict[Any, TextPrompt]):
-    r"""A dictionary class that maps from key to :obj:`TextPrompt` object.
+    r"""从键映射到 :obj:`TextPrompt` 对象的字典类。
     """
     EMBODIMENT_PROMPT = TextPrompt(
         """You are the physical embodiment of the {role} who is working on solving a task: {task}.

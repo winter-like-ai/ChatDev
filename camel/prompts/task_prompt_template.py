@@ -20,13 +20,12 @@ from camel.typing import TaskType
 
 
 class TaskPromptTemplateDict(Dict[Any, TextPromptDict]):
-    r"""A dictionary (:obj:`Dict[Any, TextPromptDict]`) of task prompt
-    templates keyed by task type. This dictionary is used to map from
-    a task type to its corresponding prompt template dictionary.
+    r"""以任务类型为键的任务提示模板字典 (:obj:`Dict[Any, TextPromptDict]`)。
+    该字典用于将任务类型映射到其对应的提示模板字典。
 
-    Args:
-        *args: Positional arguments passed to the :obj:`dict` constructor.
-        **kwargs: Keyword arguments passed to the :obj:`dict` constructor.
+    参数 (Args):
+        *args: 传递给 :obj:`dict` 构造函数的位置参数。
+        **kwargs: 传递给 :obj:`dict` 构造函数的关键字参数。
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

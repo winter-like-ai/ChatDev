@@ -23,13 +23,14 @@ class ComposedPhase(ABC):
                  log_filepath: str = ""
                  ):
         """
-
-        Args:
-            phase_name: name of this phase
-            cycle_num: loop times of this phase
-            composition: list of SimplePhases in this ComposePhase
-            config_phase: configuration of all SimplePhases
-            config_role: configuration of all Roles
+        初始化 ComposedPhase（组合相/复合阶段）实例。
+        
+        参数 (Args):
+            phase_name: 此阶段的名称
+            cycle_num: 此阶段的循环次数
+            composition: 此组合阶段中包含的简单阶段 (SimplePhase) 列表
+            config_phase: 所有简单阶段的配置项
+            config_role: 所有角色的配置项
         """
 
         self.phase_name = phase_name
@@ -72,67 +73,63 @@ class ComposedPhase(ABC):
     @abstractmethod
     def update_phase_env(self, chat_env):
         """
-        update self.phase_env (if needed) using chat_env, then the chatting will use self.phase_env to follow the context and fill placeholders in phase prompt
-        must be implemented in customized phase
-        the usual format is just like:
+        使用 chat_env 更新 self.phase_env（如果需要），后续的对话将使用 self.phase_env 来跟踪上下文并填充阶段提示词中的占位符。
+        必须在自定义的阶段类中实现该方法。
+        通常的格式如下：
         ```
             self.phase_env.update({key:chat_env[key]})
         ```
-        Args:
-            chat_env: global chat chain environment
+        参数 (Args):
+            chat_env: 全局对话链环境
 
-        Returns: None
-
+        返回 (Returns): None
         """
         pass
 
     @abstractmethod
     def update_chat_env(self, chat_env) -> ChatEnv:
         """
-        update chan_env based on the results of self.execute, which is self.seminar_conclusion
-        must be implemented in customized phase
-        the usual format is just like:
+        基于 execute 的结果（即 self.seminar_conclusion）更新全局 chat_env。
+        必须在自定义的阶段类中实现该方法。
+        通常的格式如下：
         ```
             chat_env.xxx = some_func_for_postprocess(self.seminar_conclusion)
         ```
-        Args:
-            chat_env:global chat chain environment
+        参数 (Args):
+            chat_env: 全局对话链环境
 
-        Returns:
-            chat_env: updated global chat chain environment
-
+        返回 (Returns):
+            chat_env: 更新后的全局对话链环境
         """
         pass
 
     @abstractmethod
     def break_cycle(self, phase_env) -> bool:
         """
-        special conditions for early break the loop in ComposedPhase
-        Args:
-            phase_env: phase environment
+        在 ComposedPhase 中提前跳出循环的特殊条件判断。
+        参数 (Args):
+            phase_env: 阶段环境
 
-        Returns: None
-
+        返回 (Returns): bool，是否应该跳出循环
         """
         pass
 
     def execute(self, chat_env) -> ChatEnv:
         """
-        similar to Phase.execute, but add control for breaking the loop
-        1. receive information from environment(ComposedPhase): update the phase environment from global environment
-        2. for each SimplePhase in ComposedPhase
-            a) receive information from environment(SimplePhase)
-            b) check loop break
-            c) execute the chatting
-            d) change the environment(SimplePhase)
-            e) check loop break
-        3. change the environment(ComposedPhase): update the global environment using the conclusion
+        类似 Phase.execute，但增加了中断循环控制的逻辑。
+        1. 从环境接收信息 (ComposedPhase)：从全局环境更新阶段环境
+        2. 对 ComposedPhase 中的每个 SimplePhase：
+            a) 从环境接收信息 (SimplePhase)
+            b) 检查是否需要跳出循环
+            c) 执行对话
+            d) 改变环境 (SimplePhase)
+            e) 检查是否需要跳出循环
+        3. 改变环境 (ComposedPhase)：使用结论更新全局环境
 
-        Args:
-            chat_env: global chat chain environment
+        参数 (Args):
+            chat_env: 全局对话链环境
 
-        Returns:
-
+        返回 (Returns): chat_env (更新后的环境)
         """
         self.update_phase_env(chat_env)
         for cycle_index in range(1, self.cycle_num + 1):
