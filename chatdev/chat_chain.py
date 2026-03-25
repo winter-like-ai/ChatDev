@@ -205,6 +205,7 @@ class ChatChain:
 
         software_path = os.path.join(directory, "_".join([self.project_name, self.org_name, self.start_time]))
         self.chat_env.set_directory(software_path)
+        os.environ["CHATDEV_WORKSPACE"] = software_path
 
         if self.chat_env.config.with_memory is True:
             self.chat_env.init_memory()

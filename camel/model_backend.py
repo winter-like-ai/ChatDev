@@ -98,9 +98,43 @@ class OpenAIModel(ModelBackend):
             num_max_completion_tokens = num_max_token - num_prompt_tokens
             self.model_config_dict['max_tokens'] = num_max_completion_tokens
 
+            import subprocess
+            import json
+            import time
+
+            workspace = os.environ.get("CHATDEV_WORKSPACE")
+            record_file = os.path.join(workspace, "api_records.jsonl") if workspace else None
+            record = {}
+
+            if workspace and os.path.exists(workspace):
+                # 获取ChatDev的工作目录（agent向这个目录写入代码），先向git提交代码
+                if not os.path.exists(os.path.join(workspace, ".git")):
+                    subprocess.run(["git", "init"], cwd=workspace, capture_output=True)
+                subprocess.run(["git", "add", "."], cwd=workspace, capture_output=True)
+                subprocess.run(["git", "commit", "-m", f"API Snapshot Pre-Request {time.time()}"], cwd=workspace, capture_output=True)
+
+                # 向大模型记录者json文件写入，本次请求api的输入（按照json格式）
+                record = {
+                    "timestamp": time.time(),
+                    "model": getattr(self.model_type, 'value', str(self.model_type)),
+                    "config": self.model_config_dict,
+                    "input": kwargs.get("messages", [])
+                }
+
+            # 请求api
             response = client.chat.completions.create(*args, **kwargs, model=self.model_type.value,
                                                       **self.model_config_dict)
 
+            # 向大模型记录者json文件写入，本次请求api的输出（按照json格式）
+            if workspace and os.path.exists(workspace):
+                try:
+                    record["output"] = json.loads(response.model_dump_json()) if hasattr(response, 'model_dump_json') else (response.model_dump() if hasattr(response, 'model_dump') else dict(response))
+                except Exception:
+                    record["output"] = str(response)
+                
+                with open(record_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            
             cost = prompt_cost(
                 self.model_type.value,
                 num_prompt_tokens=response.usage.prompt_tokens,
@@ -131,8 +165,38 @@ class OpenAIModel(ModelBackend):
             num_max_completion_tokens = num_max_token - num_prompt_tokens
             self.model_config_dict['max_tokens'] = num_max_completion_tokens
 
+            import subprocess
+            import json
+            import time
+
+            workspace = os.environ.get("CHATDEV_WORKSPACE")
+            record_file = os.path.join(workspace, "api_records.jsonl") if workspace else None
+            record = {}
+
+            if workspace and os.path.exists(workspace):
+                if not os.path.exists(os.path.join(workspace, ".git")):
+                    subprocess.run(["git", "init"], cwd=workspace, capture_output=True)
+                subprocess.run(["git", "add", "."], cwd=workspace, capture_output=True)
+                subprocess.run(["git", "commit", "-m", f"API Snapshot Pre-Request {time.time()}"], cwd=workspace, capture_output=True)
+
+                record = {
+                    "timestamp": time.time(),
+                    "model": getattr(self.model_type, 'value', str(self.model_type)),
+                    "config": self.model_config_dict,
+                    "input": kwargs.get("messages", [])
+                }
+
             response = openai.ChatCompletion.create(*args, **kwargs, model=self.model_type.value,
                                                     **self.model_config_dict)
+
+            if workspace and os.path.exists(workspace):
+                try:
+                    record["output"] = dict(response)
+                except Exception:
+                    record["output"] = str(response)
+                
+                with open(record_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
             cost = prompt_cost(
                 self.model_type.value,
