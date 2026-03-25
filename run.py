@@ -85,7 +85,13 @@ parser.add_argument('--model', type=str, default="GPT_4O",
                     help="GPT Model, choose from {'GPT_3_5_TURBO', 'GPT_4', 'GPT_4_TURBO', 'GPT_4O', 'GPT_4O_MINI'}")
 parser.add_argument('--path', type=str, default="",
                     help="Your file directory, ChatDev will build upon your software in the Incremental mode")
+parser.add_argument('--replay', type=str, default="default_replay.jsonl",
+                    help="Path to api_records.jsonl for replay mode. If set, no real API calls will be made.")
 args = parser.parse_args()
+
+# 如果指定了 replay 文件，设置环境变量（必须在 ChatChain 初始化之前）
+if args.replay:
+    os.environ["CHATDEV_REPLAY_JSONL"] = args.replay
 
 # Start ChatDev
 

@@ -36,6 +36,46 @@ if 'BASE_URL' in os.environ:
 else:
     BASE_URL = None
 
+# ========== Replay 模式状态 ==========
+_replay_records = None   # 预加载的 JSONL 记录列表
+_replay_index = 0        # 当前回放游标
+_replay_used = set()     # 已使用的记录索引集合（防止重复匹配）
+
+
+def _normalize_messages(messages):
+    """将 messages 标准化为可比较的元组列表，只保留 role 和 content"""
+    return tuple((m.get("role", ""), m.get("content", "")) for m in messages)
+
+
+def _find_replay_record(current_messages):
+    """在预加载的 JSONL 中查找与 current_messages 匹配的记录"""
+    global _replay_records, _replay_index, _replay_used
+    import json
+
+    current_norm = _normalize_messages(current_messages)
+
+    # 优先尝试游标位置
+    if _replay_index < len(_replay_records) and _replay_index not in _replay_used:
+        record = _replay_records[_replay_index]
+        saved_norm = _normalize_messages(record.get("input", []))
+        if current_norm == saved_norm:
+            _replay_used.add(_replay_index)
+            _replay_index += 1
+            return record
+
+    # 游标不匹配，全量搜索
+    for i, record in enumerate(_replay_records):
+        if i in _replay_used:
+            continue
+        saved_norm = _normalize_messages(record.get("input", []))
+        if current_norm == saved_norm:
+            _replay_used.add(i)
+            _replay_index = i + 1
+            return record
+
+    # 未找到匹配
+    return None
+
 
 class ModelBackend(ABC):
     r"""Base class for different model backends.
@@ -64,6 +104,54 @@ class OpenAIModel(ModelBackend):
         self.model_config_dict = model_config_dict
 
     def run(self, *args, **kwargs):
+        import json as _json
+
+        # ========== Replay 模式分支 ==========
+        replay_jsonl = os.environ.get("CHATDEV_REPLAY_JSONL")
+        if replay_jsonl:
+            global _replay_records, _replay_index
+            # 首次调用时预加载全部记录
+            if _replay_records is None:
+                _replay_records = []
+                with open(replay_jsonl, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            _replay_records.append(_json.loads(line))
+                log_visualize(f"**[Replay Mode]** 已加载 {len(_replay_records)} 条快照记录")
+
+            current_messages = kwargs.get("messages", [])
+            record = _find_replay_record(current_messages)
+
+            if record is None:
+                raise RuntimeError(
+                    f"[Replay] 未找到匹配的快照记录！当前输入 messages 数量: {len(current_messages)}, "
+                    f"已用记录: {len(_replay_used)}/{len(_replay_records)}"
+                )
+
+            # 重构 ChatCompletion 对象
+            output_data = record["output"]
+            if openai_new_api:
+                response = ChatCompletion.model_validate(output_data)
+            else:
+                response = output_data  # 旧版 API 直接返回 dict
+
+            # 打印 replay 信息
+            if isinstance(output_data, dict) and "usage" in output_data:
+                usage = output_data["usage"]
+                cost = prompt_cost(
+                    self.model_type.value,
+                    num_prompt_tokens=usage.get("prompt_tokens", 0),
+                    num_completion_tokens=usage.get("completion_tokens", 0)
+                )
+                log_visualize(
+                    "**[Replay]**\nprompt_tokens: {}\ncompletion_tokens: {}\ntotal_tokens: {}\ncost: ${:.6f}\n".format(
+                        usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0),
+                        usage.get("total_tokens", 0), cost))
+
+            return response
+
+        # ========== Snapshot 模式（原有逻辑） ==========
         string = "\n".join([message["content"] for message in kwargs["messages"]])
         encoding = tiktoken.encoding_for_model(self.model_type.value)
         num_prompt_tokens = len(encoding.encode(string))
