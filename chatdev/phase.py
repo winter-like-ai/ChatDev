@@ -21,13 +21,14 @@ class Phase(ABC):
                  model_type,
                  log_filepath):
         """
+        初始化通讯阶段(Phase)实例。
 
-        Args:
-            assistant_role_name: who receives chat in a phase
-            user_role_name: who starts the chat in a phase
-            phase_prompt: prompt of this phase
-            role_prompts: prompts of all roles
-            phase_name: name of this phase
+        参数 (Args):
+            assistant_role_name: 在该阶段中接收对话的角色名称 (即助手)
+            user_role_name: 在该阶段中发起对话的角色名称 (即用户)
+            phase_prompt: 此阶段的提示词 (prompt)
+            role_prompts: 所有角色的提示词字典
+            phase_name: 此阶段的名称
         """
         self.seminar_conclusion = None
         self.assistant_role_name = assistant_role_name
@@ -64,25 +65,26 @@ class Phase(ABC):
             chat_turn_limit=10
     ) -> str:
         """
+        在该阶段执行实质性的对话过程。
 
-        Args:
-            chat_env: global chatchain environment
-            task_prompt: user query prompt for building the software
-            assistant_role_name: who receives the chat
-            user_role_name: who starts the chat
-            phase_prompt: prompt of the phase
-            phase_name: name of the phase
-            assistant_role_prompt: prompt of assistant role
-            user_role_prompt: prompt of user role
-            task_type: task type
-            need_reflect: flag for checking reflection
-            with_task_specify: with task specify
-            model_type: model type
-            placeholders: placeholders for phase environment to generate phase prompt
-            chat_turn_limit: turn limits in each chat
+        参数 (Args):
+            chat_env: 全局对话链环境
+            task_prompt: 用户构建软件的需求提示词
+            assistant_role_name: 接收讯息的角色(助手)名称
+            user_role_name: 发起讯息的角色(用户)名称
+            phase_prompt: 该阶段的核心提示词
+            phase_name: 该阶段名称
+            assistant_role_prompt: 助手角色的系统提示词
+            user_role_prompt: 用户角色的系统提示词
+            task_type: 任务类型
+            need_reflect: 是否需要自我反思标志
+            with_task_specify: 是否附带任务详细说明
+            model_type: 模型类型
+            placeholders: 用于格式化并替换 phase_prompt 中占位符的字典
+            chat_turn_limit: 对话回合次数限制
 
-        Returns:
-
+        返回 (Returns):
+            seminar_conclusion: 研讨结论字符串
         """
 
         if placeholders is None:
@@ -188,16 +190,16 @@ class Phase(ABC):
                         phase_name: str,
                         chat_env: ChatEnv) -> str:
         """
+        对已完成阶段的对话内容进行自我反思以得出更确切的结论。
 
-        Args:
-            task_prompt: user query prompt for building the software
-            role_play_session: role play session from the chat phase which needs reflection
-            phase_name: name of the chat phase which needs reflection
-            chat_env: global chatchain environment
+        参数 (Args):
+            task_prompt: 用户构建软件的需求提示词
+            role_play_session: 当前需要反思的对话循环 Session 对象
+            phase_name: 当前需要反思的阶段名称
+            chat_env: 全局对话链环境
 
-        Returns:
-            reflected_content: str, reflected results
-
+        返回 (Returns):
+            reflected_content: str, 反思得出的字符串结果
         """
         messages = role_play_session.assistant_agent.stored_messages if len(
             role_play_session.assistant_agent.stored_messages) >= len(

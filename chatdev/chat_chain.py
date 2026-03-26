@@ -31,14 +31,15 @@ class ChatChain:
                  model_type: ModelType = ModelType.GPT_3_5_TURBO,
                  code_path: str = None) -> None:
         """
+        初始化 ChatChain 实例。
 
-        Args:
-            config_path: path to the ChatChainConfig.json
-            config_phase_path: path to the PhaseConfig.json
-            config_role_path: path to the RoleConfig.json
-            task_prompt: the user input prompt for software
-            project_name: the user input name for software
-            org_name: the organization name of the human user
+        参数 (Args):
+            config_path: ChatChainConfig.json 配置文件的路径
+            config_phase_path: PhaseConfig.json 配置文件的路径
+            config_role_path: RoleConfig.json 配置文件的路径
+            task_prompt: 用户输入的软件需求描述 (prompt)
+            project_name: 用户输入的软件名称
+            org_name: 人类用户的组织名称
         """
 
         # load config file
@@ -111,21 +112,21 @@ class ChatChain:
 
     def make_recruitment(self):
         """
-        recruit all employees
-        Returns: None
-
+        招募所有员工（代理/Agent）。
+        
+        返回 (Returns): None
         """
         for employee in self.recruitments:
             self.chat_env.recruit(agent_name=employee)
 
     def execute_step(self, phase_item: dict):
         """
-        execute single phase in the chain
-        Args:
-            phase_item: single phase configuration in the ChatChainConfig.json
+        执行 ChatChainConfig.json 中配置的单个阶段（phase）。
+        
+        参数 (Args):
+            phase_item: ChatChainConfig.json 中单个阶段的配置字典
 
-        Returns:
-
+        返回 (Returns): None
         """
 
         phase = phase_item['phase']
@@ -160,20 +161,20 @@ class ChatChain:
 
     def execute_chain(self):
         """
-        execute the whole chain based on ChatChainConfig.json
-        Returns: None
-
+        基于 ChatChainConfig.json 配置执行整个交互链（所有阶段）。
+        
+        返回 (Returns): None
         """
         for phase_item in self.chain:
             self.execute_step(phase_item)
 
     def get_logfilepath(self):
         """
-        get the log path (under the software path)
-        Returns:
-            start_time: time for starting making the software
-            log_filepath: path to the log
-
+        获取日志文件路径并创建相应的目录结构（放置在软件路径下）。
+        
+        返回 (Returns):
+            start_time: 开始制作软件的时间
+            log_filepath: 日志文件的完整路径
         """
         start_time = now()
         filepath = os.path.dirname(__file__)
@@ -187,9 +188,9 @@ class ChatChain:
 
     def pre_processing(self):
         """
-        remove useless files and log some global config settings
-        Returns: None
-
+        预处理操作：移除无用文件、创建软件目录，并记录一些全局的配置设置日志。
+        
+        返回 (Returns): None
         """
         filepath = os.path.dirname(__file__)
         root = os.path.dirname(filepath)
@@ -256,9 +257,9 @@ class ChatChain:
 
     def post_processing(self):
         """
-        summarize the production and move log files to the software directory
-        Returns: None
-
+        后处理操作：总结生产过程，将最终的代码提交到 git (如果开启)，并将日志文件移动到软件所在目录。
+        
+        返回 (Returns): None
         """
 
         self.chat_env.write_meta()
@@ -326,13 +327,13 @@ class ChatChain:
     # @staticmethod
     def self_task_improve(self, task_prompt):
         """
-        ask agent to improve the user query prompt
-        Args:
-            task_prompt: original user query prompt
+        请求 Prompt Engineer 代理(Agent) 来优化用户查询提示(prompt)。
+        
+        参数 (Args):
+            task_prompt: 原始的用户查询提示
 
-        Returns:
-            revised_task_prompt: revised prompt from the prompt engineer agent
-
+        返回 (Returns):
+            revised_task_prompt: 由提示词工程师代理优化后的提示词
         """
         self_task_improve_prompt = """I will give you a short description of a software design requirement, 
 please rewrite it into a detailed prompt that can make large language model know how to make this software better based this prompt,

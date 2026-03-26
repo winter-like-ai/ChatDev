@@ -39,16 +39,15 @@ except ImportError:
 
 @dataclass(frozen=True)
 class ChatAgentResponse:
-    r"""Response of a ChatAgent.
+    r"""ChatAgent (聊天代理) 返回的响应信息。
 
-    Attributes:
-        msgs (List[ChatMessage]): A list of zero, one or several messages.
-            If the list is empty, there is some error in message generation.
-            If the list has one message, this is normal mode.
-            If the list has several messages, this is the critic mode.
-        terminated (bool): A boolean indicating whether the agent decided
-            to terminate the chat session.
-        info (Dict[str, Any]): Extra information about the chat message.
+    属性 (Attributes):
+        msgs (List[ChatMessage]): 包含零个、一个或多个消息的列表。
+            如果列表为空，说明在生成消息时出现错误。
+            如果列表中有一条消息，说明是正常模式。
+            如果列表中有多条消息，说明此时是评论者(critic)模式。
+        terminated (bool): 布尔值，表示代理是否 deciding 终止此次对话会话。
+        info (Dict[str, Any]): 关于聊天消息的额外信息。
     """
     msgs: List[ChatMessage]
     terminated: bool
@@ -70,18 +69,17 @@ class ChatAgentResponse:
 
 
 class ChatAgent(BaseAgent):
-    r"""Class for managing conversations of CAMEL Chat Agents.
+    r"""用于管理 CAMEL 聊天代理(Chat Agents)对话的类。
 
-    Args:
-        system_message (SystemMessage): The system message for the chat agent.
-        with_memory(bool): The memory setting of the chat agent.
-        model (ModelType, optional): The LLM model to use for generating
-            responses. (default :obj:`ModelType.GPT_3_5_TURBO`)
-        model_config (Any, optional): Configuration options for the LLM model.
-            (default: :obj:`None`)
-        message_window_size (int, optional): The maximum number of previous
-            messages to include in the context window. If `None`, no windowing
-            is performed. (default: :obj:`None`)
+    参数 (Args):
+        system_message (SystemMessage): 聊天代理的系统消息。
+        memory(bool): 聊天代理的记忆设置。
+        model (ModelType, optional): 用于生成回复的 LLM (大语言模型)。
+            (默认: :obj:`ModelType.GPT_3_5_TURBO`)
+        model_config (Any, optional): LLM 模型的配置选项。
+            (默认: :obj:`None`)
+        message_window_size (int, optional): 包含在上下文窗口中的过去消息的最大数量。
+            如果为 `None`，则不进行窗口化限制。 (默认: :obj:`None`)
     """
 
     def __init__(
@@ -110,11 +108,10 @@ class ChatAgent(BaseAgent):
             self.memory = None
 
     def reset(self) -> List[MessageType]:
-        r"""Resets the :obj:`ChatAgent` to its initial state and returns the
-        stored messages.
+        r"""将 :obj:`ChatAgent` 重置为其初始状态并返回存储的消息。
 
-        Returns:
-            List[MessageType]: The stored messages.
+        返回 (Returns):
+            List[MessageType]: 存储的消息。
         """
         self.terminated = False
         self.init_messages()
@@ -127,18 +124,16 @@ class ChatAgent(BaseAgent):
             termination_reasons: List[str],
             num_tokens: int,
     ) -> Dict[str, Any]:
-        r"""Returns a dictionary containing information about the chat session.
+        r"""返回包含有关聊天会话信息的字典。
 
-        Args:
-            id (str, optional): The ID of the chat session.
-            usage (Dict[str, int], optional): Information about the usage of
-                the LLM model.
-            termination_reasons (List[str]): The reasons for the termination of
-                the chat session.
-            num_tokens (int): The number of tokens used in the chat session.
+        参数 (Args):
+            id (str, optional): 聊天会话的 ID。
+            usage (Dict[str, int], optional): 关于 LLM 模型使用情况的信息。
+            termination_reasons (List[str]): 聊天会话终止的原因。
+            num_tokens (int): 聊天会话中使用的 token 数量。
 
-        Returns:
-            Dict[str, Any]: The chat session information.
+        返回 (Returns):
+            Dict[str, Any]: 聊天会话信息。
         """
         return {
             "id": id,
@@ -148,20 +143,18 @@ class ChatAgent(BaseAgent):
         }
 
     def init_messages(self) -> None:
-        r"""Initializes the stored messages list with the initial system
-        message.
+        r"""使用初始系统消息来初始化存储的消息列表。
         """
         self.stored_messages: List[MessageType] = [self.system_message]
 
     def update_messages(self, message: ChatMessage) -> List[MessageType]:
-        r"""Updates the stored messages list with a new message.
+        r"""使用新消息更新存储的消息列表。
 
-        Args:
-            message (ChatMessage): The new message to add to the stored
-                messages.
+        参数 (Args):
+            message (ChatMessage): 要添加到存储消息中的新消息。
 
-        Returns:
-            List[ChatMessage]: The updated stored messages.
+        返回 (Returns):
+            List[ChatMessage]: 已更新的存储消息。
         """
         self.stored_messages.append(message)
         return self.stored_messages
@@ -207,17 +200,14 @@ class ChatAgent(BaseAgent):
             self,
             input_message: ChatMessage,
     ) -> ChatAgentResponse:
-        r"""Performs a single step in the chat session by generating a response
-        to the input message.
+        r"""通过对输入消息生成回复来执行聊天会话中的单步操作。
 
-        Args:
-            input_message (ChatMessage): The input message to the agent.
+        参数 (Args):
+            input_message (ChatMessage): 给代理的输入消息。
 
-        Returns:
-            ChatAgentResponse: A struct
-                containing the output messages, a boolean indicating whether
-                the chat session has terminated, and information about the chat
-                session.
+        返回 (Returns):
+            ChatAgentResponse: 包含输出消息、指示聊天会话是否已终止的布尔值
+                以及有关聊天会话的信息的结构体。
         """
         messages = self.update_messages(input_message)
         if self.message_window_size is not None and len(
@@ -284,9 +274,9 @@ class ChatAgent(BaseAgent):
         return ChatAgentResponse(output_messages, self.terminated, info)
 
     def __repr__(self) -> str:
-        r"""Returns a string representation of the :obj:`ChatAgent`.
+        r"""返回 :obj:`ChatAgent` 的字符串表示形式。
 
-        Returns:
-            str: The string representation of the :obj:`ChatAgent`.
+        返回 (Returns):
+            str: :obj:`ChatAgent` 的字符串表示形式。
         """
         return f"ChatAgent({self.role_name}, {self.role_type}, {self.model})"

@@ -4,11 +4,11 @@ import argparse
 filter_threshold = 0.9
 
 def filter_valuegain(directory, filtered_directory): 
-    """filter memory by experience's valueGain, delete experience whose valueGain is smaller than filter_threshold  
+    """根据经验块的价值增益（valueGain）执行记忆过滤，删除 valueGain 小于过滤阈值（filter_threshold）的经验。
 
-    Keyword arguments:
-    directory -- the input directory of MemoryCards, like "./ecl/memory/MemoryCards.json"
-    filtered_directory -- the output directory of filtered MemoryCards, like "./ecl/memory/MemoryCards.json"
+    参数 (Keyword arguments):
+    directory -- 输入的 memoryCards 目录, 形如 "./ecl/memory/MemoryCards.json"
+    filtered_directory -- 过滤后输出保留的 memoryCards 目录, 形如 "./ecl/memory/MemoryCards.json"
     """
     with open(directory) as file:
         content = json.load(file)

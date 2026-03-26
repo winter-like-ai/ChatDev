@@ -20,6 +20,14 @@ else:
     )
 
 def get_baidu_baike_content(keyword):
+    r"""从百度百科抓取指定关键词的内容。
+
+    参数 (Args):
+        keyword (str): 要搜索或总结的关键词。
+
+    返回 (Returns):
+        str: 从百度百科页面提取出的主要内容摘要。
+    """
     # design api by the baidubaike
     url = f'https://baike.baidu.com/item/{keyword}'
     # post request
@@ -36,6 +44,14 @@ def get_baidu_baike_content(keyword):
 
 
 def get_wiki_content(keyword):
+    r"""通过 Wikipedia API 获取指定关键词的维基百科摘要。
+
+    参数 (Args):
+        keyword (str): 要搜索的主题关键词。
+
+    返回 (Returns):
+        str: 提取到的维基百科页面摘要。如果未找到页面，则可能返回空或缺失提示。
+    """
     #  Wikipedia API ready
     wiki_wiki = wikipediaapi.Wikipedia('MyProjectName (merlin@example.com)', 'en')
     #the topic content which you want to spider
@@ -53,6 +69,14 @@ def get_wiki_content(keyword):
 
 
 def modal_trans(task_dsp):
+    r"""根据任务描述(Task description)提取出最重要的关键字，利用维基百科爬虫获取相关内容，然后让模型对内容进行要点总结。
+
+    参数 (Args):
+        task_dsp (str): 原始的用户任务或需求描述。
+
+    返回 (Returns):
+        str: 爬取并用模型总结后的网络信息(要点摘要)。如果出错则返回空字符串。
+    """
     try:
         task_in ="'" + task_dsp + \
                "'Just give me the most important keyword about this sentence without explaining it and your answer should be only one keyword."

@@ -25,23 +25,20 @@ from camel.utils import get_first_int, print_text_animated
 
 
 class CriticAgent(ChatAgent):
-    r"""A class for the critic agent that assists in selecting an option.
+    r"""用于协助选择选项的评论者代理(critic agent)的类。
 
-    Args:
-        system_message (SystemMessage): The system message for the critic
-            agent.
-        model (ModelType, optional): The LLM model to use for generating
-            responses. (default :obj:`ModelType.GPT_3_5_TURBO`)
-        model_config (Any, optional): Configuration options for the LLM model.
-            (default: :obj:`None`)
-        message_window_size (int, optional): The maximum number of previous
-            messages to include in the context window. If `None`, no windowing
-            is performed. (default: :obj:`6`)
-        retry_attempts (int, optional): The number of retry attempts if the
-            critic fails to return a valid option. (default: :obj:`2`)
-        verbose (bool, optional): Whether to print the critic's messages.
-        logger_color (Any): The color of the menu options displayed to the
-            user. (default: :obj:`Fore.MAGENTA`)
+    参数 (Args):
+        system_message (SystemMessage): 评论者代理的系统消息。
+        model (ModelType, optional): 用于生成响应的 LLM 模型。
+            (默认: :obj:`ModelType.GPT_3_5_TURBO`)
+        model_config (Any, optional): LLM 模型的配置选项。
+            (默认: :obj:`None`)
+        message_window_size (int, optional): 包含在上下文窗口中的过去消息的最大数量。
+            如果为 `None`，则不进行窗口化限制。 (默认: :obj:`6`)
+        retry_attempts (int, optional): 如果评论者未能返回有效选项时的重试次数。
+            (默认: :obj:`2`)
+        verbose (bool, optional): 是否打印评论者的消息。
+        logger_color (Any): 显示给用户的菜单选项颜色。 (默认: :obj:`Fore.MAGENTA`)
     """
 
     def __init__(
@@ -62,13 +59,13 @@ class CriticAgent(ChatAgent):
         self.logger_color = logger_color
 
     def flatten_options(self, messages: Sequence[ChatMessage]) -> str:
-        r"""Flattens the options to the critic.
+        r"""将被评审选项展平为给评论者的字符串。
 
-        Args:
-            messages (Sequence[ChatMessage]): A list of `ChatMessage` objects.
+        参数 (Args):
+            messages (Sequence[ChatMessage]): :obj:`ChatMessage` 对象列表。
 
-        Returns:
-            str: A string containing the flattened options to the critic.
+        返回 (Returns):
+            str: 格式为给评论者的展平选项的字符串。
         """
         options = [message.content for message in messages]
         flatten_options = (
@@ -84,14 +81,13 @@ class CriticAgent(ChatAgent):
         return flatten_options + format
 
     def get_option(self, input_message: ChatMessage) -> str:
-        r"""Gets the option selected by the critic.
+        r"""获取评论者选择的选项。
 
-        Args:
-            input_message (ChatMessage): A `ChatMessage` object representing
-                the input message.
+        参数 (Args):
+            input_message (ChatMessage): 代表输入消息的 :obj:`ChatMessage` 对象。
 
-        Returns:
-            str: The option selected by the critic.
+        返回 (Returns):
+            str: 评论者选择的选项。
         """
         # TODO: Add support for editing options by the critic.
         msg_content = input_message.content
@@ -129,29 +125,25 @@ class CriticAgent(ChatAgent):
         return random.choice(list(self.options_dict.values()))
 
     def parse_critic(self, critic_msg: ChatMessage) -> Optional[str]:
-        r"""Parses the critic's message and extracts the choice.
+        r"""解析评论者的消息并提取做出的选择。
 
-        Args:
-            critic_msg (ChatMessage): A `ChatMessage` object representing the
-                critic's response.
+        参数 (Args):
+            critic_msg (ChatMessage): 代表评论者回复的 :obj:`ChatMessage` 对象。
 
-        Returns:
-            Optional[str]: The critic's choice as a string, or None if the
-                message could not be parsed.
+        返回 (Returns):
+            Optional[str]: 评论者选择作为字符串，如果消息无法解析则返回 None。
         """
         choice = str(get_first_int(critic_msg.content))
         return choice
 
     def step(self, messages: Sequence[ChatMessage]) -> ChatMessage:
-        r"""Performs one step of the conversation by flattening options to the
-        critic, getting the option, and parsing the choice.
+        r"""执行一步会话：将选项展平给评论者，获取选项，并解析选择。
 
-        Args:
-            messages (Sequence[ChatMessage]): A list of ChatMessage objects.
+        参数 (Args):
+            messages (Sequence[ChatMessage]): ChatMessage 对象列表。
 
-        Returns:
-            ChatMessage: A `ChatMessage` object representing the critic's
-                choice.
+        返回 (Returns):
+            ChatMessage: 代表评论者选择的 :obj:`ChatMessage` 对象。
         """
         meta_chat_message = ChatMessage(
             role_name=messages[0].role_name,

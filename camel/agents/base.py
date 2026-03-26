@@ -15,14 +15,14 @@ from abc import ABC, abstractmethod
 
 
 class BaseAgent(ABC):
-    r"""An abstract base class for all CAMEL agents."""
+    r"""所有 CAMEL 代理对象的抽象基类。"""
 
     @abstractmethod
     def reset(self) -> None:
-        r"""Resets the agent to its initial state."""
+        r"""将代理重置为其初始状态。"""
         pass
 
     @abstractmethod
     def step(self) -> None:
-        r"""Performs a single step of the agent."""
+        r"""执行代理的单步操作。"""
         pass

@@ -19,6 +19,7 @@ sys.path.append(os.path.join(os.getcwd(),"ecl"))
 
 class OpenAIEmbedding:
     def __init__(self, **params):
+        """初始化 OpenAIEmbedding 类，用于管理 Token 使用状态。"""
         self.code_prompt_tokens = 0
         self.text_prompt_tokens = 0
         self.code_total_tokens = 0
@@ -29,6 +30,7 @@ class OpenAIEmbedding:
 
     @retry(wait=wait_random_exponential(min=2, max=5), stop=stop_after_attempt(10))
     def get_text_embedding(self,text: str):
+            """调用 OpenAI API 获取文本的 Embedding 向量表示。"""
             if BASE_URL:
                 client = openai.OpenAI(
                     api_key=OPENAI_API_KEY,
@@ -55,6 +57,7 @@ class OpenAIEmbedding:
 
     @retry(wait=wait_random_exponential(min=10, max=60), stop=stop_after_attempt(10))
     def get_code_embedding(self,code: str):
+            """调用 OpenAI API 获取代码的 Embedding 向量表示。"""
             if BASE_URL:
                 client = openai.OpenAI(
                     api_key=OPENAI_API_KEY,

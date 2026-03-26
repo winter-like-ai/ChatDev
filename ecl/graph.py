@@ -6,6 +6,7 @@ import re
 from utils import cmd,log_and_print_online
 
 class Node:
+    """表示软件开发演化图中的一个节点（即特定阶段的软件状态与代码版本）。"""
     def __init__(self):
         self.code = None
         self.version = None
@@ -17,6 +18,7 @@ class Node:
         self.embedding = None
 
     def create_from_warehouse(self, directory) -> None:
+        """从本地文件系统（Git仓库）中直接读取代码文件以构建节点内容。"""
         def _format_code(code):
             code = "\n".join([line for line in code.split("\n") if len(line.strip()) > 0])
             return code
@@ -43,6 +45,7 @@ class Node:
         self.version = float(content.split("\n")[0].split(" ")[1].replace("v", ""))
 
 class Edge:
+    """表示软件开发演化图中的一条边（代表从一个节点演进到另一个节点的动作指令）。"""
     def __init__(self, sourceMID, targetMID, instruction, role):
         self.sourceMID = sourceMID
         self.targetMID = targetMID
@@ -52,6 +55,7 @@ class Edge:
         self.embedding = None
 
 class Graph:
+    """维护整个软件演化历史的有向图（节点为代码状态，边为修改指令）。"""
     def __init__(self):
         self.task = ""
         self.task_embedding = None
@@ -75,6 +79,7 @@ class Graph:
         return False
 
     def create_from_warehouse(self, directory) -> None:
+        """从带有 Git 提交记录的仓库目录中恢复并构建整张演化图。"""
         self.directory = directory
         content = cmd("cd {} && git log --oneline".format(directory))
         #assert "log commit" in content
@@ -120,6 +125,7 @@ class Graph:
         self._create_instruction_and_roles_from_log(directory)
 
     def create_from_log(self, directory) -> None:
+        """从 ChatDev 运行期间生成的聊天日志文件中解析出对话和代码块，以此还原整个项目的演化历史图。"""
 
         def update_codebook(utterance, codebook):
             def extract_filename_from_line(lines):
@@ -273,6 +279,7 @@ class Graph:
             self.edges[i].role = roles[i]
 
     def find_shortest_path(self, uMID=None, vMID=None):
+        """使用广度优先搜索 (BFS) 在图中寻找两起始节点之间的最短演化路径。"""
         if uMID == None:
             uMID = self.edges[0].sourceMID
         if vMID == None:

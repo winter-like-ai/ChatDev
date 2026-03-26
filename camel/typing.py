@@ -15,6 +15,7 @@ from enum import Enum
 
 
 class TaskType(Enum):
+    """定义可用任务类型的枚举。"""
     AI_SOCIETY = "ai_society"
     CODE = "code"
     MISALIGNMENT = "misalignment"
@@ -26,6 +27,7 @@ class TaskType(Enum):
 
 
 class RoleType(Enum):
+    """定义可用角色类型的枚举。"""
     ASSISTANT = "assistant"
     USER = "user"
     CRITIC = "critic"
@@ -44,6 +46,7 @@ class RoleType(Enum):
 
 
 class ModelType(Enum):
+    """定义支持的语言模型类型的枚举。"""
     GPT_3_5_TURBO = "gpt-3.5-turbo-0125"
     GPT_3_5_TURBO_NEW = "gpt-3.5-turbo"
     GPT_4 = "gpt-4"
@@ -57,10 +60,12 @@ class ModelType(Enum):
 
     @property
     def value_for_tiktoken(self):
+        """获取适用于 tiktoken 的模型名称值。"""
         return self.value if self.name != "STUB" else "gpt-3.5-turbo-0125"
 
 
 class PhaseType(Enum):
+    """定义开发流程中不同阶段的枚举。"""
     REFLECTION = "reflection"
     RECRUITING_CHRO = "recruiting CHRO"
     RECRUITING_CPO = "recruiting CPO"

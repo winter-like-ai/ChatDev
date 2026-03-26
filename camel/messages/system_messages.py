@@ -20,17 +20,16 @@ from camel.typing import RoleType
 
 @dataclass
 class SystemMessage(BaseMessage):
-    r"""Class for system messages used in CAMEL chat system.
+    r"""CAMEL 聊天系统中使用的系统消息(System messages)的基础类。
 
-    Args:
-        role_name (str): The name of the user or assistant role.
-        role_type (RoleType): The type of role, either
-            :obj:`RoleType.ASSISTANT` or :obj:`RoleType.USER`.
-        meta_dict (Optional[Dict[str, str]]): Additional metadata dictionary
-            for the message.
-        role (str): The role of the message in OpenAI chat system.
-            (default: :obj:`"system"`)
-        content (str): The content of the message. (default: :obj:`""`)
+    参数 (Args):
+        role_name (str): 用户或助手角色的名称。
+        role_type (RoleType): 角色类型，可以是
+            :obj:`RoleType.ASSISTANT` 或 :obj:`RoleType.USER`。
+        meta_dict (Optional[Dict[str, str]]): 消息的附加元数据字典。
+        role (str): 消息在 OpenAI 聊天系统中的角色。
+            (默认: :obj:`"system"`)
+        content (str): 消息的内容。 (默认: :obj:`""`)
     """
     role_name: str
     role_type: RoleType
@@ -41,18 +40,15 @@ class SystemMessage(BaseMessage):
 
 @dataclass
 class AssistantSystemMessage(SystemMessage):
-    r"""Class for system messages from the assistant used in the CAMEL chat
-    system.
+    r"""CAMEL 聊天系统中来自助手的系统消息类。
 
-    Args:
-        role_name (str): The name of the assistant role.
-        role_type (RoleType): The type of role, always
-            :obj:`RoleType.ASSISTANT`.
-        meta_dict (Optional[Dict[str, str]]): Additional metadata dictionary
-            for the message.
-        role (str): The role of the message in OpenAI chat system.
-            (default: :obj:`"system"`)
-        content (str): The content of the message. (default: :obj:`""`)
+    参数 (Args):
+        role_name (str): 助手角色的名称。
+        role_type (RoleType): 角色类型，始终为 :obj:`RoleType.ASSISTANT`。
+        meta_dict (Optional[Dict[str, str]]): 消息的附加元数据字典。
+        role (str): 消息在 OpenAI 聊天系统中的角色。
+            (默认: :obj:`"system"`)
+        content (str): 消息的内容。 (默认: :obj:`""`)
     """
     role_name: str
     role_type: RoleType = RoleType.ASSISTANT
@@ -63,16 +59,15 @@ class AssistantSystemMessage(SystemMessage):
 
 @dataclass
 class UserSystemMessage(SystemMessage):
-    r"""Class for system messages from the user used in the CAMEL chat system.
+    r"""CAMEL 聊天系统中来自用户的系统消息类。
 
-    Args:
-        role_name (str): The name of the user role.
-        role_type (RoleType): The type of role, always :obj:`RoleType.USER`.
-        meta_dict (Optional[Dict[str, str]]): Additional metadata dictionary
-            for the message.
-        role (str): The role of the message in OpenAI chat system.
-            (default: :obj:`"system"`)
-        content (str): The content of the message. (default: :obj:`""`)
+    参数 (Args):
+        role_name (str): 用户角色的名称。
+        role_type (RoleType): 角色类型，始终为 :obj:`RoleType.USER`。
+        meta_dict (Optional[Dict[str, str]]): 消息的附加元数据字典。
+        role (str): 消息在 OpenAI 聊天系统中的角色。
+            (默认: :obj:`"system"`)
+        content (str): 消息的内容。 (默认: :obj:`""`)
     """
     role_name: str
     role_type: RoleType = RoleType.USER

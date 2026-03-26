@@ -18,19 +18,17 @@ from camel.agents.tool_agents import BaseToolAgent
 
 # flake8: noqa :E501
 class HuggingFaceToolAgent(BaseToolAgent):
-    r"""Tool agent for calling HuggingFace models. This agent is a wrapper
-        around agents from the `transformers` library. For more information
-        about the available models, please see the `transformers` documentation
-        at https://huggingface.co/docs/transformers/transformers_agents.
+    r"""调用 HuggingFace 模型的工具代理(Tool agent)。此代理对来自
+        `transformers` 库的代理包装而成。关于可用模型等更多信息，
+        请参阅 `transformers` 文档
+        https://huggingface.co/docs/transformers/transformers_agents。
 
-    Args:
-        name (str): The name of the agent.
-        *args (Any): Additional positional arguments to pass to the underlying
-            Agent class.
-        remote (bool, optional): Flag indicating whether to run the agent
-            remotely. (default: :obj:`True`)
-        **kwargs (Any): Additional keyword arguments to pass to the underlying
-            Agent class.
+    参数 (Args):
+        name (str): 代理的名称。
+        *args (Any): 传递给底层 Agent 类的附加位置参数。
+        remote (bool, optional): 指示是否远程运行代理的标志。
+            (默认: :obj:`True`)
+        **kwargs (Any): 传递给底层 Agent 类的附加关键字参数。
     """
 
     def __init__(
@@ -142,7 +140,7 @@ segmented_transformed_capybara_image.save("./segmented_transformed_capybara_imag
 """
 
     def reset(self) -> None:
-        r"""Resets the chat history of the agent."""
+        r"""重置代理的对话历史记录 (chat history)。"""
         self.agent.prepare_for_new_chat()
 
     def step(
@@ -151,16 +149,16 @@ segmented_transformed_capybara_image.save("./segmented_transformed_capybara_imag
         remote: Optional[bool] = None,
         **kwargs: Any,
     ) -> Any:
-        r"""Runs the agent in single execution mode.
+        r"""在单次执行模式 (single execution mode) 下运行代理。
 
-        Args:
-            *args (Any): Positional arguments to pass to the agent.
-            remote (bool, optional): Flag indicating whether to run the agent
-                remotely. Overrides the default setting. (default: :obj:`None`)
-            **kwargs (Any): Keyword arguments to pass to the agent.
+        参数 (Args):
+            *args (Any): 传递给代理的位置参数。
+            remote (bool, optional): 指示是否远程运行代理的标志。
+                覆盖默认设置。 (默认: :obj:`None`)
+            **kwargs (Any): 传递给代理的关键字参数。
 
-        Returns:
-            str: The response from the agent.
+        返回 (Returns):
+            str: 代理的响应。
         """
         if remote is None:
             remote = self.remote
@@ -172,16 +170,16 @@ segmented_transformed_capybara_image.save("./segmented_transformed_capybara_imag
         remote: Optional[bool] = None,
         **kwargs: Any,
     ) -> Any:
-        r"""Runs the agent in a chat conversation mode.
+        r"""在聊天对话模式 (chat conversation mode) 下运行代理。
 
-        Args:
-            *args (Any): Positional arguments to pass to the agent.
-            remote (bool, optional): Flag indicating whether to run the agent
-                remotely. Overrides the default setting. (default: :obj:`None`)
-            **kwargs (Any): Keyword arguments to pass to the agent.
+        参数 (Args):
+            *args (Any): 传递给代理的位置参数。
+            remote (bool, optional): 指示是否远程运行代理的标志。
+                覆盖默认设置。 (默认: :obj:`None`)
+            **kwargs (Any): 传递给代理的关键字参数。
 
-        Returns:
-            str: The response from the agent.
+        返回 (Returns):
+            str: 代理的响应。
         """
         if remote is None:
             remote = self.remote

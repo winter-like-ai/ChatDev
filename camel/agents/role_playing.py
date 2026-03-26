@@ -28,42 +28,41 @@ from chatdev.utils import log_arguments, log_visualize
 
 @log_arguments
 class RolePlaying:
-    r"""Role playing between two agents.
+    r"""两个代理(agent)之间的角色扮演对话机制。
 
-    Args:
-        assistant_role_name (str): The name of the role played by the
-            assistant.
-        user_role_name (str): The name of the role played by the user.
-        critic_role_name (str): The name of the role played by the critic.
-            (default: :obj:`"critic"`)
-        task_prompt (str, optional): A prompt for the task to be performed.
-            (default: :obj:`""`)
-        with_task_specify (bool, optional): Whether to use a task specify
-            agent. (default: :obj:`True`)
-        with_task_planner (bool, optional): Whether to use a task planner
-            agent. (default: :obj:`False`)
-        with_critic_in_the_loop (bool, optional): Whether to include a critic
-            in the loop. (default: :obj:`False`)
-        model_type (ModelType, optional): The type of backend model to use.
-            (default: :obj:`ModelType.GPT_3_5_TURBO`)
-        task_type (TaskType, optional): The type of task to perform.
-            (default: :obj:`TaskType.AI_SOCIETY`)
-        assistant_agent_kwargs (Dict, optional): Additional arguments to pass
-            to the assistant agent. (default: :obj:`None`)
-        user_agent_kwargs (Dict, optional): Additional arguments to pass to
-            the user agent. (default: :obj:`None`)
-        task_specify_agent_kwargs (Dict, optional): Additional arguments to
-            pass to the task specify agent. (default: :obj:`None`)
-        task_planner_agent_kwargs (Dict, optional): Additional arguments to
-            pass to the task planner agent. (default: :obj:`None`)
-        critic_kwargs (Dict, optional): Additional arguments to pass to the
-            critic. (default: :obj:`None`)
-        sys_msg_generator_kwargs (Dict, optional): Additional arguments to
-            pass to the system message generator. (default: :obj:`None`)
-        extend_sys_msg_meta_dicts (List[Dict], optional): A list of dicts to
-            extend the system message meta dicts with. (default: :obj:`None`)
-        extend_task_specify_meta_dict (Dict, optional): A dict to extend the
-            task specify meta dict with. (default: :obj:`None`)
+    参数 (Args):
+        assistant_role_name (str): 助手扮演的角色名称。
+        user_role_name (str): 用户扮演的角色名称。
+        critic_role_name (str): 评论者扮演的角色名称。
+            (默认: :obj:`"critic"`)
+        task_prompt (str, optional): 待执行任务的提示词。
+            (默认: :obj:`""`)
+        with_task_specify (bool, optional): 是否使用任务细化代理 (task specify agent)。
+            (默认: :obj:`True`)
+        with_task_planner (bool, optional): 是否使用任务规划代理 (task planner agent)。
+            (默认: :obj:`False`)
+        with_critic_in_the_loop (bool, optional): 是否在循环中包含评论者 (critic)。
+            (默认: :obj:`False`)
+        model_type (ModelType, optional): 要使用的后端模型类型。
+            (默认: :obj:`ModelType.GPT_3_5_TURBO`)
+        task_type (TaskType, optional): 要执行的任务类型。
+            (默认: :obj:`TaskType.AI_SOCIETY`)
+        assistant_agent_kwargs (Dict, optional): 传递给助手代理的额外参数。
+            (默认: :obj:`None`)
+        user_agent_kwargs (Dict, optional): 传递给用户代理的额外参数。
+            (默认: :obj:`None`)
+        task_specify_agent_kwargs (Dict, optional): 传递给任务细化代理的额外参数。
+            (默认: :obj:`None`)
+        task_planner_agent_kwargs (Dict, optional): 传递给任务规划代理的额外参数。
+            (默认: :obj:`None`)
+        critic_kwargs (Dict, optional): 传递给评论者代理的额外参数。
+            (默认: :obj:`None`)
+        sys_msg_generator_kwargs (Dict, optional): 传递给系统消息生成器的额外参数。
+            (默认: :obj:`None`)
+        extend_sys_msg_meta_dicts (List[Dict], optional): 用于扩展系统消息元数据字典的列表。
+            (默认: :obj:`None`)
+        extend_task_specify_meta_dict (Dict, optional): 用于扩展任务细化元数据字典的字典。
+            (默认: :obj:`None`)
     """
 
     def __init__(
@@ -171,15 +170,12 @@ class RolePlaying:
 
     def init_chat(self, phase_type: PhaseType = None,
                   placeholders=None, phase_prompt=None):
-        r"""Initializes the chat by resetting both the assistant and user
-        agents, and sending the system messages again to the agents using
-        chat messages. Returns the assistant's introductory message and the
-        user's response messages.
+        r"""通过重置助手和用户代理，使用聊天消息再次向代理发送系统消息来初始化聊天。
+        返回助手的开头说明消息以及用户的回应消息。
 
-        Returns:
-            A tuple containing an `AssistantChatMessage` representing the
-            assistant's introductory message, and a list of `ChatMessage`s
-            representing the user's response messages.
+        返回 (Returns):
+            一个元组 (Tuple)，包含代表助手开头消息的 `AssistantChatMessage`，
+            以及代表用户回应消息的 `ChatMessage` 列表。
         """
         if placeholders is None:
             placeholders = {}
@@ -212,16 +208,15 @@ class RolePlaying:
             self,
             messages: Sequence[ChatMessage],
     ) -> ChatMessage:
-        r"""Processes a list of chat messages, returning the processed message.
-        If multiple messages are provided and `with_critic_in_the_loop`
-        is `False`, raises a `ValueError`. If no messages are provided, also
-        raises a `ValueError`.
+        r"""处理聊天消息列表，返回处理后的消息。如果提供了多条消息，
+        但 `with_critic_in_the_loop` 被设置为 `False`，则抛出 `ValueError`。
+        如果没有提供消息，同样会抛出 `ValueError`。
 
-        Args:
-            messages:
+        参数 (Args):
+            messages (Sequence[ChatMessage]): 输入的聊天消息序列。
 
-        Returns:
-            A single `ChatMessage` representing the processed message.
+        返回 (Returns):
+            单个 `ChatMessage`，表示处理后的消息。
         """
         if len(messages) == 0:
             raise ValueError("No messages to process.")

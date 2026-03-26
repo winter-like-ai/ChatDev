@@ -35,17 +35,16 @@ except ImportError:
 
 @dataclass
 class BaseMessage:
-    r"""Base class for message objects used in CAMEL chat system.
+    r"""CAMEL 聊天系统中使用的消息对象的基类。
 
-    Args:
-        role_name (str): The name of the user or assistant role.
-        role_type (RoleType): The type of role, either
-            :obj:`RoleType.ASSISTANT` or :obj:`RoleType.USER`.
-        meta_dict (Optional[Dict[str, str]]): Additional metadata dictionary
-            for the message.
-        role (str): The role of the message in OpenAI chat system, either
-            :obj:`"system"`, :obj:`"user"`, or :obj:`"assistant"`.
-        content (str): The content of the message.
+    参数 (Args):
+        role_name (str): 用户或助手角色的名称。
+        role_type (RoleType): 角色类型，可以是
+            :obj:`RoleType.ASSISTANT` 或 :obj:`RoleType.USER`。
+        meta_dict (Optional[Dict[str, str]]): 消息的附加元数据字典。
+        role (str): 消息在 OpenAI 聊天系统中的角色，可以是
+            :obj:`"system"`、:obj:`"user"` 或 :obj:`"assistant"`。
+        content (str): 消息的内容。
     """
     role_name: str
     role_type: RoleType
@@ -57,14 +56,13 @@ class BaseMessage:
         tool_calls: Optional[ChatCompletionMessageToolCall] = None
 
     def __getattribute__(self, name: str) -> Any:
-        r"""Get attribute override to delegate string methods to the
-        :obj:`content`.
+        r"""获取属性的方法重写，旨在将字符串方法委托给 :obj:`content`。
 
-        Args:
-            name (str): The name of the attribute.
+        参数 (Args):
+            name (str): 属性名称。
 
-        Returns:
-            Any: The attribute value.
+        返回 (Returns):
+            Any: 属性值。
         """
         delegate_methods = [
             method for method in dir(str) if not method.startswith('_')
@@ -76,13 +74,13 @@ class BaseMessage:
                 if callable(content_method):
 
                     def modify_arg(arg: Any) -> Any:
-                        r"""Modify the argument for delegate method.
+                        r"""修改委托方法的参数。
 
-                        Args:
-                            arg (Any): The argument value.
+                        参数 (Args):
+                            arg (Any): 参数值。
 
-                        Returns:
-                            Any: The modified argument value.
+                        返回 (Returns):
+                            Any: 修改后的参数值。
                         """
                         if isinstance(arg, BaseMessage):
                             return arg.content
@@ -92,14 +90,14 @@ class BaseMessage:
                             return arg
 
                     def wrapper(*args: Any, **kwargs: Any) -> Any:
-                        r"""Wrapper function for delegate method.
+                        r"""委托方法的包装器函数。
 
-                        Args:
-                            *args (Any): Variable length argument list.
-                            **kwargs (Any): Arbitrary keyword arguments.
+                        参数 (Args):
+                            *args (Any): 可变长度参数列表。
+                            **kwargs (Any): 任意关键字参数。
 
-                        Returns:
-                            Any: The result of the delegate method.
+                        返回 (Returns):
+                            Any: 委托方法的执行结果。
                         """
                         modified_args = [modify_arg(arg) for arg in args]
                         modified_kwargs = {
@@ -116,14 +114,13 @@ class BaseMessage:
         return super().__getattribute__(name)
 
     def _create_new_instance(self, content: str) -> "BaseMessage":
-        r"""Create a new instance of the :obj:`BaseMessage` with updated
-        content.
+        r"""使用更新后的内容创建一个新的 :obj:`BaseMessage` 实例。
 
-        Args:
-            content (str): The new content value.
+        参数 (Args):
+            content (str): 新的内容值。
 
-        Returns:
-            BaseMessage: The new instance of :obj:`BaseMessage`.
+        返回 (Returns):
+            BaseMessage: 包含新内容的新 :obj:`BaseMessage` 实例。
         """
         return self.__class__(role_name=self.role_name,
                               role_type=self.role_type,
@@ -131,13 +128,13 @@ class BaseMessage:
                               content=content)
 
     def __add__(self, other: Any) -> Union["BaseMessage", Any]:
-        r"""Addition operator override for :obj:`BaseMessage`.
+        r"""重写 :obj:`BaseMessage` 的加法运算符。
 
-        Args:
-            other (Any): The value to be added with.
+        参数 (Args):
+            other (Any): 要相加的值。
 
-        Returns:
-            Union[BaseMessage, Any]: The result of the addition.
+        返回 (Returns):
+            Union[BaseMessage, Any]: 相加的结果。
         """
         if isinstance(other, BaseMessage):
             combined_content = self.content.__add__(other.content)
@@ -150,13 +147,13 @@ class BaseMessage:
         return self._create_new_instance(combined_content)
 
     def __mul__(self, other: Any) -> Union["BaseMessage", Any]:
-        r"""Multiplication operator override for :obj:`BaseMessage`.
+        r"""重写 :obj:`BaseMessage` 的乘法运算符。
 
-        Args:
-            other (Any): The value to be multiplied with.
+        参数 (Args):
+            other (Any): 要乘以的值。
 
-        Returns:
-            Union[BaseMessage, Any]: The result of the multiplication.
+        返回 (Returns):
+            Union[BaseMessage, Any]: 相乘的结果。
         """
         if isinstance(other, int):
             multiplied_content = self.content.__mul__(other)
@@ -167,46 +164,44 @@ class BaseMessage:
                 f"'{type(other)}'")
 
     def __len__(self) -> int:
-        r"""Length operator override for :obj:`BaseMessage`.
+        r"""重写 :obj:`BaseMessage` 的长度运算符。
 
-        Returns:
-            int: The length of the content.
+        返回 (Returns):
+            int: 内容的长度。
         """
         return len(self.content)
 
     def __contains__(self, item: str) -> bool:
-        r"""Contains operator override for :obj:`BaseMessage`.
+        r"""重写 :obj:`BaseMessage` 的包含 (in) 运算符。
 
-        Args:
-            item (str): The item to check for containment.
+        参数 (Args):
+            item (str): 要检查是否包含的项。
 
-        Returns:
-            bool: :obj:`True` if the item is contained in the content,
-                :obj:`False` otherwise.
+        返回 (Returns):
+            bool: 如果项包含在内容中，则返回 :obj:`True`，否则返回 :obj:`False`。
         """
         return item in self.content
 
     def token_len(self, model: ModelType = ModelType.GPT_3_5_TURBO) -> int:
-        r"""Calculate the token length of the message for the specified model.
+        r"""计算消息在指定模型下的 token 长度。
 
-        Args:
-            model (ModelType, optional): The model type to calculate the token
-                length. (default: :obj:`ModelType.GPT_3_5_TURBO`)
+        参数 (Args):
+            model (ModelType, optional): 用于计算 token 长度的模型类型。
+                (默认: :obj:`ModelType.GPT_3_5_TURBO`)
 
-        Returns:
-            int: The token length of the message.
+        返回 (Returns):
+            int: 消息的 token 长度。
         """
         from camel.utils import num_tokens_from_messages
         return num_tokens_from_messages([self.to_openai_chat_message()], model)
 
     def extract_text_and_code_prompts(
             self) -> Tuple[List[TextPrompt], List[CodePrompt]]:
-        r"""Extract text and code prompts from the message content.
+        r"""从消息内容中提取文本和代码提示 (prompts)。
 
-        Returns:
-            Tuple[List[TextPrompt], List[CodePrompt]]: A tuple containing a
-                list of text prompts and a list of code prompts extracted
-                from the content.
+        返回 (Returns):
+            Tuple[List[TextPrompt], List[CodePrompt]]: 一个元组，包含从内容中
+                提取的文本提示列表和代码提示列表。
         """
         text_prompts: List[TextPrompt] = []
         code_prompts: List[CodePrompt] = []
@@ -238,15 +233,15 @@ class BaseMessage:
         return text_prompts, code_prompts
 
     def to_openai_message(self, role: Optional[str] = None) -> OpenAIMessage:
-        r"""Converts the message to an :obj:`OpenAIMessage` object.
+        r"""将消息对象转换为 :obj:`OpenAIMessage` 格式字典。
 
-        Args:
-            role (Optional[str]): The role of the message in OpenAI chat
-                system, either :obj:`"system"`, :obj:`"user"`, or
-                obj:`"assistant"`. (default: :obj:`None`)
+        参数 (Args):
+            role (Optional[str]): 消息在 OpenAI 聊天系统中的角色，可以是
+                :obj:`"system"`、:obj:`"user"` 或 :obj:`"assistant"`。
+                (默认: :obj:`None`)
 
-        Returns:
-            OpenAIMessage: The converted :obj:`OpenAIMessage` object.
+        返回 (Returns):
+            OpenAIMessage: 转换后的 :obj:`OpenAIMessage` 字典对象。
         """
         role = role or self.role
         if role not in {"system", "user", "assistant"}:
@@ -257,15 +252,15 @@ class BaseMessage:
         self,
         role: Optional[str] = None,
     ) -> OpenAIChatMessage:
-        r"""Converts the message to an :obj:`OpenAIChatMessage` object.
+        r"""将消息对象转换为 :obj:`OpenAIChatMessage` 格式字典。
 
-        Args:
-            role (Optional[str]): The role of the message in OpenAI chat
-                system, either :obj:`"user"`, or :obj:`"assistant"`.
-                (default: :obj:`None`)
+        参数 (Args):
+            role (Optional[str]): 消息在 OpenAI 聊天系统中的角色，可以是
+                :obj:`"user"` 或 :obj:`"assistant"`。
+                (默认: :obj:`None`)
 
-        Returns:
-            OpenAIChatMessage: The converted :obj:`OpenAIChatMessage` object.
+        返回 (Returns):
+            OpenAIChatMessage: 转换后的 :obj:`OpenAIChatMessage` 字典对象。
         """
         role = role or self.role
         if role not in {"user", "assistant"}:
@@ -273,36 +268,34 @@ class BaseMessage:
         return {"role": role, "content": self.content}
 
     def to_openai_system_message(self) -> OpenAISystemMessage:
-        r"""Converts the message to an :obj:`OpenAISystemMessage` object.
+        r"""将消息转换为系统角色的 :obj:`OpenAISystemMessage` 对象字典。
 
-        Returns:
-            OpenAISystemMessage: The converted :obj:`OpenAISystemMessage`
-                object.
+        返回 (Returns):
+            OpenAISystemMessage: 转换后的 :obj:`OpenAISystemMessage` 字典对象。
         """
         return {"role": "system", "content": self.content}
 
     def to_openai_user_message(self) -> OpenAIUserMessage:
-        r"""Converts the message to an :obj:`OpenAIUserMessage` object.
+        r"""将消息转换为用户角色的 :obj:`OpenAIUserMessage` 字典对象。
 
-        Returns:
-            OpenAIUserMessage: The converted :obj:`OpenAIUserMessage` object.
+        返回 (Returns):
+            OpenAIUserMessage: 转换后的 :obj:`OpenAIUserMessage` 字典对象。
         """
         return {"role": "user", "content": self.content}
 
     def to_openai_assistant_message(self) -> OpenAIAssistantMessage:
-        r"""Converts the message to an :obj:`OpenAIAssistantMessage` object.
+        r"""将消息转换为助手角色的 :obj:`OpenAIAssistantMessage` 字典对象。
 
-        Returns:
-            OpenAIAssistantMessage: The converted :obj:`OpenAIAssistantMessage`
-                object.
+        返回 (Returns):
+            OpenAIAssistantMessage: 转换后的 :obj:`OpenAIAssistantMessage` 字典对象。
         """
         return {"role": "assistant", "content": self.content}
 
     def to_dict(self) -> Dict:
-        r"""Converts the message to a dictionary.
+        r"""将消息转换为字典格式。
 
-        Returns:
-            dict: The converted dictionary.
+        返回 (Returns):
+            dict: 转换后的字典。
         """
         return {
             "role_name": self.role_name,

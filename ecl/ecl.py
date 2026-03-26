@@ -11,6 +11,10 @@ sys.path.append(os.path.join(os.getcwd(),"ecl"))
 
 
 def memorize(directory):
+    """
+    针对给定的单个软件项目目录执行记忆(Memorize)操作：
+    将软件开发过程中的交互日志转化为图结构，提取有效经验并同步上传至全局记忆系统。
+    """
     print(directory)
     cfg = get_easyDict_from_filepath("./ecl/config.yaml")
     
@@ -49,6 +53,9 @@ def memorize(directory):
     memory.upload_from_experience(experience)
 
 def process_directory(directory):
+    """
+    遍历指定目录下的所有子目录（代表不同软件项目），并对它们依次执行记忆操作。
+    """
     for root, dirs, files in os.walk(directory):
         for directory in dirs:
             file_path = os.path.join(root, directory)
