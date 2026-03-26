@@ -1,38 +1,79 @@
-# ChatDev 快照与复现系统说明文档 (Snapshot & Replay Guide)
+# ChatDev 快照/复现/混合 三模式指南
 
-本项目在大模型 API 调用层 `camel/model_backend.py` 实现了两种核心运行模式，用于追踪、审查以及廉价复现智能体对话全过程。
+## 模式总览
 
-## 1. 快照模式 (Snapshot)
-这是系统的默认运行模式。每次模型请求时，系统会自动在代码生成的 `WareHouse/xxx/` 工作空间中：
-1. **自动 Git 追踪**：初始化 `.git` 环境，并在每次 API 请求之前执行 `git add .` 和 `git commit`。如果代码出错或你想恢复上下文，随时可以通过 Git 撤销修改。
-2. **完整 IO 录制**：把每次请求的 **Input `messages`** 和返回的 **Output**，连同配置和其他元数据完整的写入到名为 `api_records.jsonl` 的文件内。这就构成了一个不可篡改的数据回放快照。
-
-### 使用方法：
-像往常一样运行 `run.py` 即可，快照记录和 Git 特性会自动在对应生成的 `WareHouse` 文件夹下发生。
-```bash
-python run.py --task "Develop a basic Gomoku game." --name "Gomoku"
-```
+| 模式 | CLI 参数 | 用途 |
+|------|---------|------|
+| **Snapshot** | (默认) | 正常运行，自动 Git 追踪 + JSONL 录制 |
+| **Replay** | `--replay <jsonl>` | 零 API 消耗复现，从快照中匹配 input 返回 output |
+| **Hybrid** | `--hybrid <jsonl> --hybrid-node <N>` | 前 N 个节点复现，第 N 个节点开始调用真实 API |
 
 ---
 
-## 2. 复现模式 (Replay)
-这是最新引入的防损耗功能。当你需要通过重新运行主程序来测试项目的内部流转逻辑，但又**不想花费任何真实的 API 金额**，可选用该模式。
-* **原理**：在该模式下，所有通过 `run.py` 触发的底层 LLM 调用都被拦截。系统会去你指定的 `api_records.jsonl` 中，寻找一个 `input` 字段和当前 `messages` 完全对得上的快照记录，并利用 OpenAI 官方的 `ChatCompletion.model_validate()` 从存下的 `output` 里完整重建出一个虚假的 API 返回对象。
-* **优势**：完美骗过项目其他所有上层逻辑（Agents, Parse 等），它们会认为这个对象是真的。速度极快，不消耗 Tokens，且保证 100% 同构可复现。
+## 1. Snapshot 快照模式（默认）
 
-### 使用方法：
-在运行 `run.py` 时新增一项目命令 `--replay` 并跟上任意正确的 `.jsonl` 快照绝对路径或关联相对路径。
+每次 API 请求自动：
+1. `git add . && git commit` 保存代码快照
+2. 追加 `{timestamp, node_index, model, config, input, output}` 到 `api_records.jsonl`
+
 ```bash
-python run.py --task "Develop a basic Gomoku game." --name "Gomoku" --replay "WareHouse/Gomoku_DefaultOrganization_.../api_records.jsonl"
+python run.py --task "..." --name "MyApp"
 ```
 
-> **注意：** 必须确保启动 `run.py` 时提供的 `--task` 以及后续的所有交互历史与 `jsonl` 内部记录的历史匹配。因为复现模式会对 `input` 内容做严格比对校验，如果任何一步发生分歧（例如你在复现时临时修改了一个 Agent 的底层 Prompt），导致查不到匹配的记录，程序会抛出 `RuntimeError` 提醒脱轨。
+产出物：`WareHouse/MyApp_.../api_records.jsonl`
 
-## 默认体验配置
-我已经在此项目根目录下放置了一个运行完好的默认生成记录样例文件 `default_replay.jsonl`。这是之前要求 ChatDev "写一个命令行词汇统计工具" 任务成功录制下来的。
+---
 
-**体验指令：**
+## 2. Replay 复现模式
+
+从已有快照零消耗还原整个运行过程。
+
 ```bash
-python run.py --task "Create a CLI tool that takes a text file path as input and outputs the total word count. The tool should handle basic punctuation and count sequences of alphanumeric characters as words. Output the count to the console." --name "CLI_Text_File_Word_Counter" --replay "default_replay.jsonl"
+python run.py --task "..." --name "MyApp" --replay "WareHouse/xxx/api_records.jsonl"
 ```
-预期结果是几乎在一两秒钟之内，所有的大模型开发角色立刻光速回复并将完整的 CLI 开发代码生成到 `WareHouse`，中间所有的 API 调用会提示 `[Replay Mode]` 并跳过真实的请求损耗。
+
+匹配策略：将当前 `messages` 的 `(role, content)` 与快照 `input` 做严格比对。
+
+---
+
+## 3. Hybrid 混合模式 🆕
+
+**场景**：某次运行在第 N 个 API 调用处产生了不理想的结果，希望从这个节点重试。
+
+```bash
+# 前 15 个节点复现（node 0~14），第 15 个节点开始调用真实 API
+python run.py --task "..." --name "MyApp" \
+    --hybrid "WareHouse/xxx/api_records.jsonl" \
+    --hybrid-node 15
+```
+
+**行为**：
+1. **Node 0 ~ N-1**：Replay 模式，快照记录被**复制**到新 JSONL，**Git 全程提交**
+2. **Node N 起**：Snapshot 模式，真实 API 调用，新结果追加到 JSONL
+3. 最终得到一个**完整的新 `api_records.jsonl`**（前半段复制 + 后半段新生成）
+4. 比如jsonl文件中总共14条记录，希望只修改最后一个节点，那么--hybrid-node=13
+---
+
+## 环境变量参考
+
+| 变量 | 说明 |
+|------|------|
+| `CHATDEV_REPLAY_JSONL` | Replay 模式的源 JSONL 路径 |
+| `CHATDEV_HYBRID_JSONL` | Hybrid 模式的源 JSONL 路径 |
+| `CHATDEV_HYBRID_NODE` | Hybrid 切换节点索引 (0-based) |
+| `CHATDEV_WORKSPACE` | 当前工作区路径（由 chat_chain.py 自动设置） |
+
+## 快速体验
+
+```bash
+# 先 Snapshot 生成快照
+python run.py --task "Create a CLI word counter." --name "WordCounter"
+
+# 纯 Replay（零消耗）
+python run.py --task "Create a CLI word counter." --name "WordCounter" \
+    --replay "WareHouse/WordCounter_.../api_records.jsonl"
+
+# Hybrid：从第 10 个节点重试
+python run.py --task "Create a CLI word counter." --name "WordCounter" \
+    --hybrid "WareHouse/WordCounter_.../api_records.jsonl" --hybrid-node 10
+```
