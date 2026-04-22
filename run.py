@@ -85,20 +85,56 @@ parser.add_argument('--model', type=str, default="GPT_4O",
                     help="GPT Model, choose from {'GPT_3_5_TURBO', 'GPT_4', 'GPT_4_TURBO', 'GPT_4O', 'GPT_4O_MINI'}")
 parser.add_argument('--path', type=str, default="",
                     help="Your file directory, ChatDev will build upon your software in the Incremental mode")
-parser.add_argument('--replay', type=str, default="",
-                    help="Path to api_records.jsonl for replay mode. If set, no real API calls will be made.")
-parser.add_argument('--hybrid', type=str, default="default_replay.jsonl",
-                    help="Path to api_records.jsonl for hybrid mode. Replays up to --hybrid-node, then switches to live API.")
-parser.add_argument('--hybrid-node', type=int, default=13,
-                    help="Node index (0-based) at which hybrid mode switches from replay to live API calls.")
+
+# ========== 三种互斥运行模式 ==========
+# 不传任何模式参数 → 默认模式（纯 API 调用，无 git 快照，无 JSONL 记录）
+# --snapshot       → 快照模式（真实 API + git 追踪 + JSONL 记录）
+# --replay <path>  → 回放模式（从 JSONL 重放，不调用真实 API）
+# --hybrid <path>  → 混合模式（先回放前 k-1 个节点，从第 k 个节点开始调用真实 API）
+mode_group = parser.add_mutually_exclusive_group()
+mode_group.add_argument('--snapshot', type=str, nargs='?', const='', default=None,
+                        metavar='OUTPUT_PATH',
+                        help="快照模式：真实 API 调用 + git 追踪 + JSONL 记录。"
+                             "可选指定 JSONL 输出路径（默认为 workspace/api_records.jsonl）")
+mode_group.add_argument('--replay', type=str, default=None, metavar='JSONL_PATH',
+                        help="回放模式：从指定 JSONL 文件回放，不调用真实 API")
+mode_group.add_argument('--hybrid', type=str, default=None, metavar='JSONL_PATH',
+                        help="混合模式：先从 JSONL 回放，到达指定节点后切换为真实 API 调用")
+
+# hybrid 专属参数
+parser.add_argument('--hybrid-node', type=int, default=1,
+                    help="仅用于 --hybrid 模式：从第 k 个节点开始调用真实 API（1-based，范围 1~n）。"
+                         "例如 --hybrid-node 5 表示前 4 个节点回放，从第 5 个节点开始实时调用。默认值为 1（全部实时）。")
+
 args = parser.parse_args()
 
-# 如果指定了 replay 文件，设置环境变量（必须在 ChatChain 初始化之前）
-if args.replay:
+# ========== 参数校验 ==========
+if args.hybrid_node != 1 and args.hybrid is None:
+    parser.error("--hybrid-node 只能与 --hybrid 一起使用")
+
+if args.hybrid and args.hybrid_node < 1:
+    parser.error("--hybrid-node 必须 >= 1（1-based 索引，表示从第几个节点开始调用真实 API）")
+
+# ========== 确定运行模式并设置环境变量 ==========
+if args.snapshot is not None:
+    run_mode = "snapshot"
+elif args.replay is not None:
+    run_mode = "replay"
+elif args.hybrid is not None:
+    run_mode = "hybrid"
+else:
+    run_mode = "default"
+
+os.environ["CHATDEV_RUN_MODE"] = run_mode
+
+if run_mode == "snapshot" and args.snapshot:
+    # 用户指定了自定义 JSONL 输出路径
+    os.environ["CHATDEV_SNAPSHOT_OUTPUT"] = args.snapshot
+
+if run_mode == "replay":
     os.environ["CHATDEV_REPLAY_JSONL"] = args.replay
 
-# 如果指定了 hybrid 模式
-if args.hybrid:
+if run_mode == "hybrid":
     os.environ["CHATDEV_HYBRID_JSONL"] = args.hybrid
     os.environ["CHATDEV_HYBRID_NODE"] = str(args.hybrid_node)
 

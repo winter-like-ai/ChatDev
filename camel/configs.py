@@ -48,7 +48,7 @@ class ChatGPTConfig:
         user (str, optional): 代表最终用户的唯一标识符，可帮助 OpenAI 监控和检测滥用行为。
             (默认: :obj:`""`)
     """
-    temperature: float = 0.2  # openai default: 1.0
+    temperature: float = 0  # openai default: 1.0 chatdev default: 0.2
     top_p: float = 1.0
     n: int = 1
     stream: bool = False
@@ -58,3 +58,4 @@ class ChatGPTConfig:
     frequency_penalty: float = 0.0
     logit_bias: Dict = field(default_factory=dict)
     user: str = ""
+    seed: int = 42

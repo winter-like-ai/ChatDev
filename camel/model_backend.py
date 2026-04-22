@@ -12,6 +12,7 @@
 # limitations under the License.
 # =========== Copyright 2023 @ CAMEL-AI.org. All Rights Reserved. ===========
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any, Dict
 import json
 import os
@@ -37,6 +38,31 @@ if 'BASE_URL' in os.environ:
     BASE_URL = os.environ['BASE_URL']
 else:
     BASE_URL = None
+
+
+# ========== 运行模式枚举 ==========
+class RunMode(Enum):
+    """ChatDev 运行模式枚举
+
+    - DEFAULT:  原始 ChatDev 模式，纯 API 调用，无 git 快照，无 JSONL 记录
+    - SNAPSHOT: 快照模式，真实 API 调用 + git 追踪 + JSONL 记录
+    - REPLAY:   回放模式，从 JSONL 文件重放，不调用真实 API
+    - HYBRID:   混合模式，先从 JSONL 回放前 k-1 个节点，从第 k 个节点开始调用真实 API
+    """
+    DEFAULT = "default"
+    SNAPSHOT = "snapshot"
+    REPLAY = "replay"
+    HYBRID = "hybrid"
+
+
+def _get_run_mode() -> RunMode:
+    """从环境变量 CHATDEV_RUN_MODE 获取当前运行模式"""
+    mode_str = os.environ.get("CHATDEV_RUN_MODE", "default")
+    try:
+        return RunMode(mode_str)
+    except ValueError:
+        log_visualize(f"**[Warning]** 未知运行模式 '{mode_str}'，回退到默认模式")
+        return RunMode.DEFAULT
 
 
 # ========== 全局模式状态 ==========
@@ -149,10 +175,11 @@ class OpenAIModel(ModelBackend):
         self.model_type = model_type
         self.model_config_dict = model_config_dict
 
-    def _replay_one(self, current_messages, workspace=None, record_file=None):
+    def _recall_from_records(self, current_messages):
         """
-        复现模式：从快照中查找匹配的 input，返回重建的 response。
-        如果提供了 workspace 和 record_file，还会执行 git 提交并将记录写入新的 JSONL。
+        从快照记录中查找匹配的 response 并返回重建的对象。
+        这是一个纯粹的「API 代理」—— 只负责输入→输出的映射，不做任何日志、git、JSONL 操作。
+        对 ChatDev 来说，这个方法和真实 API 调用是完全透明等价的。
         """
         record = _find_replay_record(current_messages)
         if record is None:
@@ -163,38 +190,18 @@ class OpenAIModel(ModelBackend):
 
         output_data = record["output"]
 
-        # git 提交（hybrid 模式下复现阶段也需要 git 追踪）
-        if workspace:
-            _git_snapshot(workspace, f"Hybrid Replay Node {_call_counter} @ {time.time()}")
-
-        # 将复现记录写入新的 JSONL（hybrid 模式需要完整的 api_records.jsonl）
-        if record_file:
-            _write_record_to_jsonl(record_file, record)
-
         # 重构 ChatCompletion 对象
         if openai_new_api:
             response = ChatCompletion.model_validate(output_data)
         else:
             response = output_data
 
-        # 打印 replay 信息
-        if isinstance(output_data, dict) and "usage" in output_data:
-            usage = output_data["usage"]
-            cost = prompt_cost(
-                self.model_type.value,
-                num_prompt_tokens=usage.get("prompt_tokens", 0),
-                num_completion_tokens=usage.get("completion_tokens", 0)
-            )
-            log_visualize(
-                "**[Replay]**\nprompt_tokens: {}\ncompletion_tokens: {}\ntotal_tokens: {}\ncost: ${:.6f}\n".format(
-                    usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0),
-                    usage.get("total_tokens", 0), cost))
-
         return response
 
-    def _snapshot_one(self, *args, **kwargs):
+    def _call_api(self, *args, **kwargs):
         """
-        快照模式：真实调用 API，执行 git 提交，将完整 IO 写入 JSONL。
+        执行真实的 OpenAI API 调用，返回 response 对象。
+        纯粹的 API 调用，不含任何日志输出、git 操作或 JSONL 记录。
         """
         current_messages = kwargs.get("messages", [])
         string = "\n".join([message["content"] for message in current_messages])
@@ -203,8 +210,16 @@ class OpenAIModel(ModelBackend):
         gap_between_send_receive = 15 * len(current_messages)
         num_prompt_tokens += gap_between_send_receive
 
-        workspace = os.environ.get("CHATDEV_WORKSPACE")
-        record_file = os.path.join(workspace, "api_records.jsonl") if workspace else None
+        num_max_token_map = {
+            "gpt-3.5-turbo": 4096, "gpt-3.5-turbo-16k": 16384,
+            "gpt-3.5-turbo-0613": 4096, "gpt-3.5-turbo-16k-0613": 16384,
+            "gpt-3.5-turbo-0125": 4096,
+            "gpt-4": 8192, "gpt-4-0613": 8192, "gpt-4-32k": 32768,
+            "gpt-4-turbo": 100000, "gpt-4o": 4096, "gpt-4o-mini": 16384,
+        }
+        num_max_token = num_max_token_map[self.model_type.value]
+        num_max_completion_tokens = num_max_token - num_prompt_tokens
+        self.model_config_dict['max_tokens'] = num_max_completion_tokens
 
         if openai_new_api:
             if BASE_URL:
@@ -212,133 +227,148 @@ class OpenAIModel(ModelBackend):
             else:
                 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
-            num_max_token_map = {
-                "gpt-3.5-turbo": 4096, "gpt-3.5-turbo-16k": 16384,
-                "gpt-3.5-turbo-0613": 4096, "gpt-3.5-turbo-16k-0613": 16384,
-                "gpt-3.5-turbo-0125": 4096,
-                "gpt-4": 8192, "gpt-4-0613": 8192, "gpt-4-32k": 32768,
-                "gpt-4-turbo": 100000, "gpt-4o": 4096, "gpt-4o-mini": 16384,
-            }
-            num_max_token = num_max_token_map[self.model_type.value]
-            num_max_completion_tokens = num_max_token - num_prompt_tokens
-            self.model_config_dict['max_tokens'] = num_max_completion_tokens
-
-            record = {}
-            if workspace and os.path.exists(workspace):
-                _git_snapshot(workspace, f"API Snapshot Pre-Request Node {_call_counter} @ {time.time()}")
-                record = {
-                    "timestamp": time.time(),
-                    "node_index": _call_counter,
-                    "model": getattr(self.model_type, 'value', str(self.model_type)),
-                    "config": self.model_config_dict,
-                    "input": current_messages
-                }
-
             response = client.chat.completions.create(
                 *args, **kwargs, model=self.model_type.value, **self.model_config_dict)
 
-            if workspace and os.path.exists(workspace):
-                record["output"] = _serialize_response(response)
-                _write_record_to_jsonl(record_file, record)
+            if not isinstance(response, ChatCompletion):
+                raise RuntimeError("Unexpected return from OpenAI API")
+            return response
+        else:
+            response = openai.ChatCompletion.create(
+                *args, **kwargs, model=self.model_type.value, **self.model_config_dict)
 
+            if not isinstance(response, Dict):
+                raise RuntimeError("Unexpected return from OpenAI API")
+            return response
+
+    def _log_usage(self, response):
+        """
+        统一的 token/cost 日志输出，所有模式共享。
+        无论 response 来自真实 API 还是快照记录，日志格式完全一致，
+        时间戳由 logging 框架在写入时自动生成（即当前真实时间）。
+        """
+        if openai_new_api:
             cost = prompt_cost(
                 self.model_type.value,
                 num_prompt_tokens=response.usage.prompt_tokens,
                 num_completion_tokens=response.usage.completion_tokens
             )
             log_visualize(
-                "**[OpenAI_Usage_Info Receive]**\nprompt_tokens: {}\ncompletion_tokens: {}\ntotal_tokens: {}\ncost: ${:.6f}\n".format(
+                "**[OpenAI_Usage_Info Receive]**\n"
+                "prompt_tokens: {}\ncompletion_tokens: {}\ntotal_tokens: {}\ncost: ${:.6f}\n".format(
                     response.usage.prompt_tokens, response.usage.completion_tokens,
                     response.usage.total_tokens, cost))
-            if not isinstance(response, ChatCompletion):
-                raise RuntimeError("Unexpected return from OpenAI API")
-            return response
         else:
-            num_max_token_map = {
-                "gpt-3.5-turbo": 4096, "gpt-3.5-turbo-16k": 16384,
-                "gpt-3.5-turbo-0613": 4096, "gpt-3.5-turbo-16k-0613": 16384,
-                "gpt-3.5-turbo-0125": 4096,
-                "gpt-4": 8192, "gpt-4-0613": 8192, "gpt-4-32k": 32768,
-                "gpt-4-turbo": 100000, "gpt-4o": 4096, "gpt-4o-mini": 16384,
-            }
-            num_max_token = num_max_token_map[self.model_type.value]
-            num_max_completion_tokens = num_max_token - num_prompt_tokens
-            self.model_config_dict['max_tokens'] = num_max_completion_tokens
-
-            record = {}
-            if workspace and os.path.exists(workspace):
-                _git_snapshot(workspace, f"API Snapshot Pre-Request Node {_call_counter} @ {time.time()}")
-                record = {
-                    "timestamp": time.time(),
-                    "node_index": _call_counter,
-                    "model": getattr(self.model_type, 'value', str(self.model_type)),
-                    "config": self.model_config_dict,
-                    "input": current_messages
-                }
-
-            response = openai.ChatCompletion.create(
-                *args, **kwargs, model=self.model_type.value, **self.model_config_dict)
-
-            if workspace and os.path.exists(workspace):
-                try:
-                    record["output"] = dict(response)
-                except Exception:
-                    record["output"] = str(response)
-                _write_record_to_jsonl(record_file, record)
-
             cost = prompt_cost(
                 self.model_type.value,
                 num_prompt_tokens=response["usage"]["prompt_tokens"],
                 num_completion_tokens=response["usage"]["completion_tokens"]
             )
             log_visualize(
-                "**[OpenAI_Usage_Info Receive]**\nprompt_tokens: {}\ncompletion_tokens: {}\ntotal_tokens: {}\ncost: ${:.6f}\n".format(
+                "**[OpenAI_Usage_Info Receive]**\n"
+                "prompt_tokens: {}\ncompletion_tokens: {}\ntotal_tokens: {}\ncost: ${:.6f}\n".format(
                     response["usage"]["prompt_tokens"], response["usage"]["completion_tokens"],
                     response["usage"]["total_tokens"], cost))
-            if not isinstance(response, Dict):
-                raise RuntimeError("Unexpected return from OpenAI API")
-            return response
+
+    def _get_record_file(self):
+        """获取 JSONL 记录文件路径。
+        优先使用用户指定的 CHATDEV_SNAPSHOT_OUTPUT，否则使用 workspace/api_records.jsonl。
+        """
+        custom_output = os.environ.get("CHATDEV_SNAPSHOT_OUTPUT")
+        if custom_output:
+            return custom_output
+        workspace = os.environ.get("CHATDEV_WORKSPACE")
+        if workspace:
+            return os.path.join(workspace, "api_records.jsonl")
+        return None
+
+    def _do_git_and_record(self, current_messages, response):
+        """
+        执行 git 快照并将完整 IO 写入 JSONL 记录。
+        snapshot 和 hybrid 模式共享此方法。
+        """
+        workspace = os.environ.get("CHATDEV_WORKSPACE")
+        record_file = self._get_record_file()
+
+        if workspace and os.path.exists(workspace):
+            _git_snapshot(workspace, f"API Node {_call_counter} @ {time.time()}")
+
+            if record_file:
+                record = {
+                    "timestamp": time.time(),
+                    "node_index": _call_counter,
+                    "model": getattr(self.model_type, 'value', str(self.model_type)),
+                    "config": self.model_config_dict,
+                    "input": current_messages,
+                    "output": _serialize_response(response)
+                }
+                _write_record_to_jsonl(record_file, record)
 
     def run(self, *args, **kwargs):
+        """根据运行模式分发 API 调用。
+
+        设计原则：replay 是 API 调用的透明代理。
+        所有模式共享相同的日志格式（_log_usage），时间戳由 logging 框架实时生成。
+        唯一的区别是 response 的来源（真实 API vs 快照记录）以及是否记录 git/JSONL。
+
+        四种模式（互斥）：
+        - DEFAULT:  纯 API 调用，无快照无记录
+        - SNAPSHOT: 真实 API + git 快照 + JSONL 记录
+        - REPLAY:   从 JSONL 回放（透明代理，日志与 DEFAULT 一致）
+        - HYBRID:   前 k-1 个节点回放 + git/JSONL，从第 k 个节点开始实时 API + git/JSONL
+        """
         global _call_counter
-
+        mode = _get_run_mode()
         current_messages = kwargs.get("messages", [])
-        replay_jsonl = os.environ.get("CHATDEV_REPLAY_JSONL")
-        hybrid_jsonl = os.environ.get("CHATDEV_HYBRID_JSONL")
-        hybrid_node = int(os.environ.get("CHATDEV_HYBRID_NODE", "-1"))
-        workspace = os.environ.get("CHATDEV_WORKSPACE")
-        record_file = os.path.join(workspace, "api_records.jsonl") if workspace else None
 
-        # ========== 纯 Replay 模式 ==========
-        if replay_jsonl and not hybrid_jsonl:
-            _load_replay_records(replay_jsonl)
-            response = self._replay_one(current_messages)
-            _call_counter += 1
-            return response
+        # ========== 默认模式：纯 API 调用 ==========
+        if mode == RunMode.DEFAULT:
+            response = self._call_api(*args, **kwargs)
+            self._log_usage(response)
 
-        # ========== Hybrid 混合模式 ==========
-        if hybrid_jsonl:
-            _load_replay_records(hybrid_jsonl)
+        # ========== 快照模式：API + git + JSONL ==========
+        elif mode == RunMode.SNAPSHOT:
+            response = self._call_api(*args, **kwargs)
+            self._log_usage(response)
+            self._do_git_and_record(current_messages, response)
 
-            if _call_counter < hybrid_node:
-                # --- 复现阶段：复制快照记录 + git 提交 ---
-                log_visualize(f"**[Hybrid Replay]** Node {_call_counter}/{hybrid_node}")
-                response = self._replay_one(
-                    current_messages, workspace=workspace, record_file=record_file)
-                _call_counter += 1
-                return response
+        # ========== 回放模式：透明代理，日志格式与真实调用一致 ==========
+        elif mode == RunMode.REPLAY:
+            jsonl_path = os.environ.get("CHATDEV_REPLAY_JSONL")
+            if not jsonl_path:
+                raise RuntimeError("[Replay] 未设置 CHATDEV_REPLAY_JSONL 环境变量")
+            _load_replay_records(jsonl_path)
+            response = self._recall_from_records(current_messages)
+            self._log_usage(response)
+
+        # ========== 混合模式：先回放后实时，全程 git + JSONL ==========
+        elif mode == RunMode.HYBRID:
+            jsonl_path = os.environ.get("CHATDEV_HYBRID_JSONL")
+            if not jsonl_path:
+                raise RuntimeError("[Hybrid] 未设置 CHATDEV_HYBRID_JSONL 环境变量")
+            hybrid_node = int(os.environ.get("CHATDEV_HYBRID_NODE", "1"))
+            _load_replay_records(jsonl_path)
+
+            # hybrid_node 是 1-based：前 hybrid_node-1 个节点回放，从第 hybrid_node 个开始实时
+            # _call_counter 是 0-based：replay 阶段 counter = 0 .. hybrid_node-2
+            if _call_counter < hybrid_node - 1:
+                log_visualize(
+                    f"**[Hybrid Replay]** 节点 {_call_counter + 1}/{hybrid_node - 1} (回放中)")
+                response = self._recall_from_records(current_messages)
             else:
-                # --- 实时 API 阶段：从此节点开始真实调用 ---
-                if _call_counter == hybrid_node:
+                if _call_counter == hybrid_node - 1:
                     log_visualize(
-                        f"**[Hybrid Switch]** 到达节点 {hybrid_node}，切换为实时 API 调用模式")
-                log_visualize(f"**[Hybrid Snapshot]** Node {_call_counter} (LIVE API)")
-                response = self._snapshot_one(*args, **kwargs)
-                _call_counter += 1
-                return response
+                        f"**[Hybrid Switch]** 到达第 {hybrid_node} 个节点，切换为实时 API 调用模式")
+                log_visualize(
+                    f"**[Hybrid Live]** 节点 {_call_counter + 1} (LIVE API)")
+                response = self._call_api(*args, **kwargs)
 
-        # ========== 纯 Snapshot 模式（默认） ==========
-        response = self._snapshot_one(*args, **kwargs)
+            self._log_usage(response)
+            self._do_git_and_record(current_messages, response)
+
+        else:
+            raise ValueError(f"未知运行模式: {mode}")
+
         _call_counter += 1
         return response
 

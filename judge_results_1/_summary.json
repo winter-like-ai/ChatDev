@@ -1,0 +1,236 @@
+{
+  "meta": {
+    "model": "gpt-4o",
+    "total_entries": 15,
+    "task_completed_count": 11,
+    "task_completed_rate": 73.3,
+    "num_task_groups": 5
+  },
+  "failure_mode_frequency": {
+    "1.1": {
+      "name": "Disobey Task Specification",
+      "count": 3,
+      "rate_percent": 20.0
+    },
+    "1.2": {
+      "name": "Disobey Role Specification",
+      "count": 0,
+      "rate_percent": 0.0
+    },
+    "1.3": {
+      "name": "Step Repetition",
+      "count": 2,
+      "rate_percent": 13.3
+    },
+    "1.4": {
+      "name": "Loss of Conversation History",
+      "count": 0,
+      "rate_percent": 0.0
+    },
+    "1.5": {
+      "name": "Unaware of Termination Conditions",
+      "count": 0,
+      "rate_percent": 0.0
+    },
+    "2.1": {
+      "name": "Conversation Reset",
+      "count": 0,
+      "rate_percent": 0.0
+    },
+    "2.2": {
+      "name": "Fail to Ask for Clarification",
+      "count": 0,
+      "rate_percent": 0.0
+    },
+    "2.3": {
+      "name": "Task Derailment",
+      "count": 1,
+      "rate_percent": 6.7
+    },
+    "2.4": {
+      "name": "Information Withholding",
+      "count": 0,
+      "rate_percent": 0.0
+    },
+    "2.5": {
+      "name": "Ignored Other Agent Input",
+      "count": 0,
+      "rate_percent": 0.0
+    },
+    "2.6": {
+      "name": "Action-Reasoning Mismatch",
+      "count": 3,
+      "rate_percent": 20.0
+    },
+    "3.1": {
+      "name": "Premature Termination",
+      "count": 0,
+      "rate_percent": 0.0
+    },
+    "3.2": {
+      "name": "Weak Verification",
+      "count": 11,
+      "rate_percent": 73.3
+    },
+    "3.3": {
+      "name": "No or Incorrect Verification",
+      "count": 1,
+      "rate_percent": 6.7
+    }
+  },
+  "per_task_summary": {
+    "Basic_Network_Ping_Tool_CLI": {
+      "num_runs": 3,
+      "completed_count": 2,
+      "runs": [
+        {
+          "dir_name": "Basic_Network_Ping_Tool_CLI_DefaultOrganization_20260331212914",
+          "task_completed": true,
+          "summary": "The task was successfully completed with minor inefficiencies identified in verification phases as weak verification—code review was performed but subtle issues could have been missed due to superficial checks.",
+          "failure_modes_detected": [
+            "3.2"
+          ]
+        },
+        {
+          "dir_name": "Basic_Network_Ping_Tool_CLI_DefaultOrganization_20260331215105",
+          "task_completed": true,
+          "summary": "The task was successfully completed without significant inefficiencies; however, there were instances where verification of code quality was superficial, failing to conduct critical tests or identify logical enhancements.",
+          "failure_modes_detected": [
+            "2.6",
+            "3.2"
+          ]
+        },
+        {
+          "dir_name": "Basic_Network_Ping_Tool_CLI_DefaultOrganization_20260331220035",
+          "task_completed": null,
+          "summary": "Freeform text summary of the problems with the inefficiencies or failure modes in the trace: The task was completed successfully without evident critical errors or inefficiencies in the trace. Verification steps were present, and the coding and review phases adhered to the correct protocols without major failings.",
+          "failure_modes_detected": []
+        }
+      ]
+    },
+    "CLI_Text_File_Word_Counter": {
+      "num_runs": 3,
+      "completed_count": 2,
+      "runs": [
+        {
+          "dir_name": "CLI_Text_File_Word_Counter_DefaultOrganization_20260331200439",
+          "task_completed": null,
+          "summary": "Freeform text summary of the problems with the inefficiencies or failure modes in the trace: \nThe task was completed successfully. However, the trace displayed inefficiencies such as step repetition in redundant code updates and weak verification during certain stages where verification steps were superficial and insufficient for logical correctness.",
+          "failure_modes_detected": [
+            "1.3",
+            "3.2"
+          ]
+        },
+        {
+          "dir_name": "CLI_Text_File_Word_Counter_DefaultOrganization_20260331210834",
+          "task_completed": true,
+          "summary": "The task was successfully completed, and no inefficiencies or failure modes were identified in the trace. The multiagent system followed the correct workflow, adhered to roles, and efficiently completed the interactions.",
+          "failure_modes_detected": []
+        },
+        {
+          "dir_name": "CLI_Text_File_Word_Counter_DefaultOrganization_20260331214035",
+          "task_completed": true,
+          "summary": "The task is completed successfully, but action-reasoning mismatches and disobedience of task specification were observed. For instance, a GUI implementation was generated despite the task being specified as a CLI tool only (disobey task specification), and the reasoning for implementing GUI conflicts with the task definition.",
+          "failure_modes_detected": [
+            "1.1",
+            "2.6"
+          ]
+        }
+      ]
+    },
+    "CLI_Unit_Converter_Temperature": {
+      "num_runs": 3,
+      "completed_count": 2,
+      "runs": [
+        {
+          "dir_name": "CLI_Unit_Converter_Temperature_DefaultOrganization_20260331212438",
+          "task_completed": true,
+          "summary": "The main inefficiency emerged from task derailment during the coding phase, where agents initially shifted towards GUI implementation despite the CLI tool specification, requiring a later correction. Weak verification was demonstrated during code-review stages where reviewers failed to rigorously verify the scope and requirements of the project outputs.",
+          "failure_modes_detected": [
+            "1.1",
+            "2.3",
+            "3.2"
+          ]
+        },
+        {
+          "dir_name": "CLI_Unit_Converter_Temperature_DefaultOrganization_20260331215600",
+          "task_completed": true,
+          "summary": "The task was successfully completed; however, inefficiencies emerged during the process. The primary issues were unnecessary step repetition (e.g., redundant verification cycles) and slightly weak verification as it did not explore key edge cases (e.g., does not introduce breaking test cases), reflecting potential room for improvement in verification depth.",
+          "failure_modes_detected": [
+            "1.3",
+            "3.2"
+          ]
+        },
+        {
+          "dir_name": "CLI_Unit_Converter_Temperature_DefaultOrganization_20260331215959",
+          "task_completed": null,
+          "summary": "Freeform text summary of the problems with the inefficiencies or failure modes in the trace: The task was successfully completed, but weak verification was observed in the review phase. The Code Reviewer did not implement comprehensive validation mechanisms or explore edge cases thoroughly, and tests or checks were superficial. While the tool was confirmed functional, the processes for verifying logic and robustness lacked depth.",
+          "failure_modes_detected": [
+            "3.2"
+          ]
+        }
+      ]
+    },
+    "Directory_Tree_Generator_CLI": {
+      "num_runs": 3,
+      "completed_count": 2,
+      "runs": [
+        {
+          "dir_name": "Directory_Tree_Generator_CLI_DefaultOrganization_20260331200919",
+          "task_completed": true,
+          "summary": "The trace demonstrates effective completion of the task without major inefficiencies or failure modes. Some inefficiencies in design occurred, such as the absence of actual verification tests confirming task satisfaction (weak verification).",
+          "failure_modes_detected": [
+            "3.2"
+          ]
+        },
+        {
+          "dir_name": "Directory_Tree_Generator_CLI_DefaultOrganization_20260331211344",
+          "task_completed": null,
+          "summary": "Freeform text summary of the problems with the inefficiencies or failure modes in the trace: The task was successfully completed without encountering any inefficiencies or failures. The agents adhered to the task and role specifications, avoided step repetitions, maintained conversation history, and ensured proper verification.",
+          "failure_modes_detected": []
+        },
+        {
+          "dir_name": "Directory_Tree_Generator_CLI_DefaultOrganization_20260331214549",
+          "task_completed": true,
+          "summary": "The project succeeded but exhibited inefficiencies, such as \"Weak Verification,\" where the verifier superficially reviewed code, which could miss critical flaws like verifying execution or runtime issues. Verification steps were present but not thorough.",
+          "failure_modes_detected": [
+            "3.2"
+          ]
+        }
+      ]
+    },
+    "Simple_CSV_Data_Processor_CLI": {
+      "num_runs": 3,
+      "completed_count": 3,
+      "runs": [
+        {
+          "dir_name": "Simple_CSV_Data_Processor_CLI_DefaultOrganization_20260331211858",
+          "task_completed": true,
+          "summary": "The trace successfully completes the task, but there are inefficiencies in verification and task adherence. No or Incorrect Verification occurred during the code review phase as the system did not test or run the code to ensure correctness. Weak Verification is prominent because the verification provided was superficial and did not confirm application functionality comprehensively.",
+          "failure_modes_detected": [
+            "1.1",
+            "3.2",
+            "3.3"
+          ]
+        },
+        {
+          "dir_name": "Simple_CSV_Data_Processor_CLI_DefaultOrganization_20260331215118",
+          "task_completed": true,
+          "summary": "The task is successfully completed without major failure modes or inefficiencies. The system adhered to task constraints and generated correct functional outputs (software and manual). However, the verification phase did not rigorously test edge cases, limiting robustness.",
+          "failure_modes_detected": [
+            "3.2"
+          ]
+        },
+        {
+          "dir_name": "Simple_CSV_Data_Processor_CLI_DefaultOrganization_20260331220557",
+          "task_completed": true,
+          "summary": "The task was successfully completed, but inefficiencies emerged due to weak verification steps and unnecessary additional code modifications. The reviewer did not robustly test or verify the system, which could have led to undetected bugs if errors existed.",
+          "failure_modes_detected": [
+            "2.6",
+            "3.2"
+          ]
+        }
+      ]
+    }
+  }
+}
