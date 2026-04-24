@@ -20,8 +20,8 @@ from typing import Any, Callable, List, Optional, Set, TypeVar
 import requests
 import tiktoken
 
-from camel.messages import OpenAIMessage
-from camel.typing import ModelType, TaskType
+from chatdev.agents.messages import OpenAIMessage
+from chatdev.agents.typing import ModelType, TaskType
 
 F = TypeVar('F', bound=Callable[..., Any])
 
@@ -147,7 +147,7 @@ def openai_api_key_required(func: F) -> F:
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        from camel.agents.chat_agent import ChatAgent
+        from chatdev.agents.chat_agent import ChatAgent
         if not isinstance(self, ChatAgent):
             raise ValueError("Expected ChatAgent")
         if self.model == ModelType.STUB:

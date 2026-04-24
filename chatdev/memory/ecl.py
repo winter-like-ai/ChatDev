@@ -1,13 +1,12 @@
 
 import argparse
-from graph import Graph
-from experience import Experience
-from utils import get_easyDict_from_filepath,now ,log_and_print_online
-from memory import Memory
+from chatdev.memory.graph import Graph
+from chatdev.memory.experience import Experience
+from chatdev.memory.utils import get_easyDict_from_filepath,now,log_and_print_online
+from chatdev.memory.memory import Memory
 import sys
 import os 
 import logging
-sys.path.append(os.path.join(os.getcwd(),"ecl"))
 
 
 def memorize(directory):
@@ -16,9 +15,9 @@ def memorize(directory):
     将软件开发过程中的交互日志转化为图结构，提取有效经验并同步上传至全局记忆系统。
     """
     print(directory)
-    cfg = get_easyDict_from_filepath("./ecl/config.yaml")
+    cfg = get_easyDict_from_filepath(os.path.join(os.path.dirname(__file__), "config.yaml"))
     
-    folder_path = "ecl/logs"
+    folder_path = os.path.join(os.getcwd(), "logs", "ecl")
     if not os.path.exists(folder_path):
         os.mkdir(folder_path)
     log_filename = folder_path+"/ecl_{}.log".format(os.path.basename(directory))

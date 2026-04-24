@@ -6,6 +6,8 @@ import time
 import numpy as np
 from openai import OpenAI
 
+from chatdev.path_utils import get_workspace_root
+
 client = OpenAI(
     api_key='',
     base_url="",
@@ -200,4 +202,4 @@ def main(warehouse_root):
 
             counter += 1
 
-main(warehouse_root = "./WareHouse")
+main(warehouse_root=str(get_workspace_root()))

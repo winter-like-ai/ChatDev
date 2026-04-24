@@ -22,7 +22,7 @@ import time
 import openai
 import tiktoken
 
-from camel.typing import ModelType
+from chatdev.agents.typing import ModelType
 from chatdev.statistics import prompt_cost
 from chatdev.utils import log_visualize
 

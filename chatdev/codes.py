@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 
+from chatdev.path_utils import get_workspace_root
 from chatdev.utils import log_visualize
 
 
@@ -51,12 +52,7 @@ class Codes:
         return code
 
     def _update_codes(self, generated_content):
-        """
-        根据生成的 markdown 内容更新代码簿 (codebooks)。
-        
-        参数 (Args):
-            generated_content: 包含代码的 markdown 字符串
-        """
+        """Merge newly generated markdown code blocks into the in-memory codebook."""
         new_codes = Codes(generated_content)
         differ = difflib.Differ()
         for key in new_codes.codebooks.keys():
@@ -80,13 +76,7 @@ class Codes:
                 self.codebooks[key] = new_codes.codebooks[key]
 
     def _rewrite_codes(self, git_management, phase_info=None) -> None:
-        """
-        将代码簿中的代码写入到文件系统中，并根据需要通过 Git 进行版本控制。
-        
-        参数 (Args):
-            git_management: 是否使用 git 管理
-            phase_info: 当前阶段的信息，用于 git commit msg
-        """
+        """Write the current codebook to disk and optionally create git history."""
         directory = self.directory
         rewrite_codes_content = "**[Rewrite Codes]**\n\n"
         if os.path.exists(directory) and len(os.listdir(directory)) > 0:
@@ -97,6 +87,7 @@ class Codes:
 
         for filename in self.codebooks.keys():
             filepath = os.path.join(directory, filename)
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
             with open(filepath, "w", encoding="utf-8") as writer:
                 writer.write(self.codebooks[filename])
                 rewrite_codes_content += os.path.join(directory, filename) + " Wrote\n"
@@ -106,38 +97,47 @@ class Codes:
                 phase_info = ""
             log_git_info = "**[Git Information]**\n\n"
             if self.version == 1.0:
-                os.system("cd {}; git init".format(self.directory))
-                log_git_info += "cd {}; git init\n".format(self.directory)
-            os.system("cd {}; git add .".format(self.directory))
-            log_git_info += "cd {}; git add .\n".format(self.directory)
+                subprocess.run(["git", "init"], cwd=self.directory, check=False)
+                log_git_info += "git init\n"
+            subprocess.run(["git", "add", "."], cwd=self.directory, check=False)
+            log_git_info += "git add .\n"
 
             # check if there exist diff
-            completed_process = subprocess.run("cd {}; git status".format(self.directory), shell=True, text=True,
-                                               stdout=subprocess.PIPE)
+            completed_process = subprocess.run(
+                ["git", "status"],
+                cwd=self.directory,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
             if "nothing to commit" in completed_process.stdout:
                 self.version -= 1.0
                 return
 
-            os.system("cd {}; git commit -m \"v{}\"".format(self.directory, str(self.version) + " " + phase_info))
-            log_git_info += "cd {}; git commit -m \"v{}\"\n".format(self.directory,
-                                                                      str(self.version) + " " + phase_info)
+            subprocess.run(
+                ["git", "commit", "-m", f"v{self.version} {phase_info}"],
+                cwd=self.directory,
+                check=False,
+            )
+            log_git_info += "git commit -m \"v{}\"\n".format(str(self.version) + " " + phase_info)
             if self.version == 1.0:
-                os.system("cd {}; git submodule add ./{} {}".format(os.path.dirname(os.path.dirname(self.directory)),
-                                                                    "WareHouse/" + os.path.basename(self.directory),
-                                                                    "WareHouse/" + os.path.basename(self.directory)))
-                log_git_info += "cd {}; git submodule add ./{} {}\n".format(
-                    os.path.dirname(os.path.dirname(self.directory)),
-                    "WareHouse/" + os.path.basename(self.directory),
-                    "WareHouse/" + os.path.basename(self.directory))
+                workspace_root = get_workspace_root()
+                workspace_relative_path = os.path.join(os.path.basename(workspace_root), os.path.basename(self.directory))
+                subprocess.run(
+                    ["git", "submodule", "add", f"./{workspace_relative_path}", workspace_relative_path],
+                    cwd=os.path.dirname(os.path.dirname(self.directory)),
+                    check=False,
+                )
+                log_git_info += "git submodule add ./{} {}\n".format(
+                    workspace_relative_path,
+                    workspace_relative_path,
+                )
                 log_visualize(rewrite_codes_content)
             log_visualize(log_git_info)
 
     def _get_codes(self) -> str:
-        """
-        将代码簿中的所有代码格式化为单一的 markdown 字符串。
-        
-        返回 (Returns): 格式化后的代码字符串
-        """
+        """Return every tracked file as a single markdown-formatted string."""
         content = ""
         for filename in self.codebooks.keys():
             content += "{}\n```{}\n{}\n```\n\n".format(filename,
@@ -146,16 +146,17 @@ class Codes:
         return content
 
     def _load_from_hardware(self, directory) -> None:
-        """
-        从指定的硬件目录加载已有的 Python 代码文件到代码簿中。
-        
-        参数 (Args):
-            directory: 包含 Python 文件的目录路径
-        """
-        assert len([filename for filename in os.listdir(directory) if filename.endswith(".py")]) > 0
+        """Load existing Python files from a base directory into the codebook."""
+        assert any(
+            filename.endswith(".py")
+            for _, _, filenames in os.walk(directory)
+            for filename in filenames
+        )
         for root, directories, filenames in os.walk(directory):
             for filename in filenames:
                 if filename.endswith(".py"):
-                    code = open(os.path.join(directory, filename), "r", encoding="utf-8").read()
-                    self.codebooks[filename] = self._format_code(code)
+                    source_path = os.path.join(root, filename)
+                    relative_path = os.path.relpath(source_path, directory)
+                    code = open(source_path, "r", encoding="utf-8").read()
+                    self.codebooks[relative_path] = self._format_code(code)
         log_visualize("{} files read from {}".format(len(self.codebooks.keys()), directory))

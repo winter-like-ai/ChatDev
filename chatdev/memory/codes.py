@@ -5,13 +5,13 @@ import subprocess
 import shutil
 import time
 import signal
-from utils import get_easyDict_from_filepath
+from chatdev.memory.utils import get_easyDict_from_filepath
 
 
 class Codes:
     def __init__(self, generated_content=""):
         """初始化 Codes 实例，从配置中读取路径，解析生成的代码内容。"""
-        cfg = get_easyDict_from_filepath("./ecl/config.yaml")
+        cfg = get_easyDict_from_filepath(os.path.join(os.path.dirname(__file__), "config.yaml"))
         self.directory: str = cfg.codes.tmp_directory
         self.main_script: str = cfg.codes.main_script
         self.generated_content: str = generated_content

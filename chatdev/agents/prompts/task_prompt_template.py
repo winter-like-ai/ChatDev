@@ -13,10 +13,10 @@
 # =========== Copyright 2023 @ CAMEL-AI.org. All Rights Reserved. ===========
 from typing import Any, Dict
 
-from camel.prompts import (
+from chatdev.agents.prompts import (
     TextPromptDict,
 )
-from camel.typing import TaskType
+from chatdev.agents.typing import TaskType
 
 
 class TaskPromptTemplateDict(Dict[Any, TextPromptDict]):

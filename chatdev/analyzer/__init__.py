@@ -1,12 +1,12 @@
 """
-log_analyzer - ChatDev 日志结构化解析模块
+chatdev.analyzer - ChatDev 日志结构化解析模块
 
 将 ChatDev 生成的 .log 文件解析为结构化 JSON，
 便于程序化分析、bug 识别和统计。
 
 Quick Start::
 
-    from log_analyzer import LogParser
+    from chatdev.analyzer import LogParser
 
     parser = LogParser()
 
@@ -17,7 +17,7 @@ Quick Start::
     results = parser.parse_batch("path/to/dataset_mini/")
 
     # 验证输出
-    from log_analyzer.schema import validate
+    from chatdev.analyzer.schema import validate
     is_valid, errors = validate(result)
 """
 

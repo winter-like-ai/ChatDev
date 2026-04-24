@@ -1,13 +1,12 @@
 import os
 import time
-from graph import Graph, Node, Edge
+from chatdev.memory.graph import Graph, Node, Edge
 import sys
 import openai
 import numpy as np
-from codes import Codes
-from utils import get_easyDict_from_filepath,OpenAIModel,log_and_print_online
-from embedding import OpenAIEmbedding
-sys.path.append(os.path.join(os.getcwd(),"ecl"))
+from chatdev.memory.codes import Codes
+from chatdev.memory.utils import get_easyDict_from_filepath,OpenAIModel,log_and_print_online
+from chatdev.memory.embedding import OpenAIEmbedding
 class Shortcut:
     """定义一条捷径(Shortcut)经验，即从 sourceMID 状态跳转到 targetMID 状态。"""
     def __init__(self, sourceMID, targetMID, valueGain,instructionStar,edgeIDPath):
@@ -24,7 +23,7 @@ class Shortcut:
 class Experience:
     """管理构建经验的过程，以及相应的图评估与经验提取方法。"""
     def __init__(self, graph: Graph, directory: str):
-        cfg = get_easyDict_from_filepath("./ecl/config.yaml")
+        cfg = get_easyDict_from_filepath(os.path.join(os.path.dirname(__file__), "config.yaml"))
         self.graph: Graph = graph
         self.directory = directory
         self.threshold = cfg.experience.threshold

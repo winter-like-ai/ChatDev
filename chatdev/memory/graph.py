@@ -3,7 +3,7 @@ import subprocess
 import hashlib
 from queue import Queue
 import re
-from utils import cmd,log_and_print_online
+from chatdev.memory.utils import cmd,log_and_print_online
 
 class Node:
     """表示软件开发演化图中的一个节点（即特定阶段的软件状态与代码版本）。"""

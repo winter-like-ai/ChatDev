@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-ChatDev is a Python framework that simulates a software company as a multi-agent workflow. A top-level run launches a `ChatChain`, which loads company configuration from `CompanyConfig/<config>/`, recruits role agents into a shared `ChatEnv`, executes a configured chain of phases, and writes generated artifacts plus logs into `WareHouse/<project>_<org>_<timestamp>/`.
+ChatDev is a Python framework that simulates a software company as a multi-agent workflow. A top-level run launches a `ChatChain`, which loads company configuration from the resolved company-config root (`config/` or `CompanyConfig/`), recruits role agents into a shared `ChatEnv`, executes a configured chain of phases, and writes generated artifacts plus logs under the resolved workspace root (`outputs/` or `WareHouse/`) using `<project>_<org>_<timestamp>` directories.
 
 This branch also adds snapshot/replay-oriented work on top of the original ChatDev flow. The CLI in `run.py` supports four execution modes:
 - default: normal live API execution
@@ -49,14 +49,14 @@ python3 run.py --replay test/default_replay.jsonl
 python3 run.py --hybrid test/default_replay.jsonl --hybrid-node 5
 ```
 
-Outputs are written under `WareHouse/` and the workspace path is also exposed through `CHATDEV_WORKSPACE` during a run.
+Outputs are written under `outputs/` and the workspace path is also exposed through `CHATDEV_WORKSPACE` during a run.
 
 ## Run generated software
 
 After a run completes, enter the generated project directory and run its entrypoint:
 
 ```bash
-python3 WareHouse/<project>_<org>_<timestamp>/main.py
+python3 outputs/<project>_<org>_<timestamp>/main.py
 ```
 
 ## Run the visualizer
@@ -70,7 +70,7 @@ The Flask app serves the static UI and replay pages from `visualizer/static/`.
 ## Log analyzer CLI
 
 ```bash
-python -m log_analyzer.cli /path/to/chatdev.log --skip-flask --skip-http
+python -m chatdev.analyzer.cli /path/to/chatdev.log --skip-flask --skip-http
 ```
 
 ## Docker
@@ -92,13 +92,13 @@ If you need to validate code, prefer targeted script execution for the area you 
 ```bash
 python3 run.py --help
 python3 visualizer/app.py --help
-python -m log_analyzer.cli --help
+python -m chatdev.analyzer.cli --help
 ```
 
 For a single script-style check, run the file directly, e.g.:
 
 ```bash
-python3 test/log_analysis_pipeline.py
+python3 scripts/log_analysis_pipeline.py
 ```
 
 ## Architecture
@@ -111,7 +111,7 @@ The main orchestration path is:
    - `ChatChainConfig.json`: overall chain, recruitments, feature toggles
    - `PhaseConfig.json`: per-phase prompts, role pairings, turn limits
    - `RoleConfig.json`: system prompts for each agent role
-3. `ChatChain.pre_processing()` creates a timestamped workspace in `WareHouse/`, copies the selected config files into it, optionally copies a base code tree for incremental mode, initializes optional memory, and stores the original task prompt.
+3. `ChatChain.pre_processing()` creates a timestamped workspace in `outputs/`, copies the selected config files into it, optionally copies a base code tree for incremental mode, initializes optional memory, and stores the original task prompt.
 4. `ChatChain.make_recruitment()` registers the configured roles in `ChatEnv`.
 5. `ChatChain.execute_chain()` walks the configured phase chain and dispatches each item either to a simple phase (`chatdev.phase`) or a composed phase (`chatdev.composed_phase`).
 6. `ChatChain.post_processing()` writes `meta.txt`, emits summary statistics from the run log, optionally commits generated code if git management is enabled, and finalizes the log.
@@ -126,7 +126,7 @@ Shared mutable state passed across phases. It contains:
 - recruited agents (`Roster`)
 - generated code (`Codes`)
 - generated docs (`Documents` for requirements/manuals)
-- optional cross-phase memory (`ecl.memory.Memory`)
+- optional cross-phase memory (`chatdev.memory.memory.Memory`)
 - environment fields such as modality, language, review comments, error summaries, and workspace directory
 
 `ChatEnv` also contains helper methods for running generated `main.py`, writing metadata, rewriting generated code/docs, and generating images.
@@ -134,7 +134,7 @@ Shared mutable state passed across phases. It contains:
 ### `chatdev/phase.py`
 Defines `Phase`, the abstraction for a single seminar between two roles. A phase:
 - pulls needed state from `ChatEnv`
-- runs a `camel.agents.RolePlaying` conversation
+- runs a `chatdev.agents.RolePlaying` conversation
 - extracts a seminar conclusion, optionally via self-reflection
 - pushes the result back into `ChatEnv`
 
@@ -148,33 +148,33 @@ These are the artifact writers. They parse LLM markdown output into concrete fil
 
 ## Configuration model
 
-Most behavior is data-driven from `CompanyConfig/`.
-- `CompanyConfig/Default/` is the fallback baseline.
-- `run.py:get_config()` mixes a selected company directory with `CompanyConfig/Default/` file-by-file, so missing files in a custom config automatically fall back to Default.
+Most behavior is data-driven from `config/`.
+- `config/Default/` is the fallback baseline.
+- `run.py:get_config()` mixes a selected company directory with `config/Default/` file-by-file, so missing files in a custom config automatically fall back to Default.
 - `Human`, `Art`, and `Incremental` are not separate codepaths in the runner; they are alternative config sets that change the chain and prompts.
 
 When changing behavior, first decide whether it belongs in JSON config or in Python orchestration code. Many workflow changes only require config edits.
 
 ## Generated artifact model
 
-A ChatDev run does not modify the repository source tree directly. Instead it creates a new project folder under `WareHouse/` containing generated code, copied config, logs, prompt text, and metadata. That means bugs in generation often need inspection of both:
+A ChatDev run does not modify the repository source tree directly. Instead it creates a new project folder under `outputs/` containing generated code, copied config, logs, prompt text, and metadata. That means bugs in generation often need inspection of both:
 - the framework code under `chatdev/`
-- the produced workspace under `WareHouse/<run>/`
+- the produced workspace under `outputs/<run>/`
 
 ## Visualizer and logs
 
 The visualizer is a small Flask server in `visualizer/app.py`. It serves static pages and receives messages through `/send_message`; runtime logging utilities post to it opportunistically but degrade if the Flask app is not running.
 
-Logs are a primary product of the system. `chatdev.utils.log_visualize()` drives the human-readable run log, `chatdev.statistics.get_info()` parses those logs for run summaries, and `log_analyzer/` contains a separate parser/CLI for structured analysis of those logs.
+Logs are a primary product of the system. `chatdev.utils.log_visualize()` drives the human-readable run log, `chatdev.statistics.get_info()` parses those logs for run summaries, and `chatdev/analyzer/` contains a separate parser/CLI for structured analysis of those logs.
 
 ## Repository areas worth recognizing
 
-- `camel/`: the local CAMEL-based agent framework used by ChatDev’s phases and role-playing sessions.
-- `ecl/`: experiential co-learning and memory support used when `with_memory` is enabled.
+- `chatdev/agents/`: the agent framework used by ChatDev’s phases and role-playing sessions (formerly `camel/`).
+- `chatdev/memory/`: experiential co-learning and memory support used when `with_memory` is enabled (formerly `ecl/`).
 - `visualizer/`: Flask + static frontend for live/replay log visualization.
-- `log_analyzer/`: parser and CLI for post-processing ChatDev logs.
-- `CompanyConfig/`: the workflow definitions you usually edit before touching orchestration code.
-- `MultiAgentEbook/`, `SRDD/`, `dataset_mini/`, `Warehouse/`, and `WareHouse_old/`: datasets, demos, generated artifacts, and research assets rather than the core runtime.
+- `chatdev/analyzer/`: parser and CLI for post-processing ChatDev logs (formerly `log_analyzer/`).
+- `config/`: the workflow definitions you usually edit before touching orchestration code.
+- `docs/ebook/`, `data/srdd/`, `data/dataset_mini/`, `outputs/`, and `outputs_old/`: datasets, demos, generated artifacts, and research assets rather than the core runtime.
 
 ## Working guidance for future changes
 

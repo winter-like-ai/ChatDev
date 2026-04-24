@@ -14,15 +14,13 @@
 import argparse
 import logging
 import os
-import sys
 
 import dotenv
+
 dotenv.load_dotenv(override=True)
 
-from camel.typing import ModelType
-
-root = os.path.dirname(__file__)
-sys.path.append(root)
+from chatdev.agents.typing import ModelType
+from chatdev.path_utils import get_workspace_root, resolve_company_config_paths
 
 from chatdev.chat_chain import ChatChain
 
@@ -40,47 +38,19 @@ except ImportError:
 
 
 def get_config(company):
-    """
-    return configuration json files for ChatChain
-    user can customize only parts of configuration json files, other files will be left for default
-    Args:
-        company: customized configuration name under CompanyConfig/
-
-    Returns:
-        path to three configuration jsons: [config_path, config_phase_path, config_role_path]
-    """
-    config_dir = os.path.join(root, "CompanyConfig", company)
-    default_config_dir = os.path.join(root, "CompanyConfig", "Default")
-
-    config_files = [
-        "ChatChainConfig.json",
-        "PhaseConfig.json",
-        "RoleConfig.json"
-    ]
-
-    config_paths = []
-
-    for config_file in config_files:
-        company_config_path = os.path.join(config_dir, config_file)
-        default_config_path = os.path.join(default_config_dir, config_file)
-
-        if os.path.exists(company_config_path):
-            config_paths.append(company_config_path)
-        else:
-            config_paths.append(default_config_path)
-
-    return tuple(config_paths)
+    """Return the three resolved ChatChain configuration file paths for a company."""
+    return resolve_company_config_paths(company)
 
 
 parser = argparse.ArgumentParser(description='argparse')
 parser.add_argument('--config', type=str, default="Default",
-                    help="Name of config, which is used to load configuration under CompanyConfig/")
+                    help="Name of config, which is used to load configuration under config/")
 parser.add_argument('--org', type=str, default="DefaultOrganization",
-                    help="Name of organization, your software will be generated in WareHouse/name_org_timestamp")
+                    help="Name of organization, your software will be generated under the workspace root as <name>_<org>_<timestamp>")
 parser.add_argument('--task', type=str, default="Create a CLI tool that takes a text file path as input and outputs the total word count. The tool should handle basic punctuation and count sequences of alphanumeric characters as words. Output the count to the console.",
                     help="Prompt of software")
 parser.add_argument('--name', type=str, default="CLI_Text_File_Word_Counter",
-                    help="Name of software, your software will be generated in WareHouse/name_org_timestamp")
+                    help="Name of software, your software will be generated under the workspace root as <name>_<org>_<timestamp>")
 parser.add_argument('--model', type=str, default="GPT_4O",
                     help="GPT Model, choose from {'GPT_3_5_TURBO', 'GPT_4', 'GPT_4_TURBO', 'GPT_4O', 'GPT_4O_MINI'}")
 parser.add_argument('--path', type=str, default="",
@@ -95,7 +65,7 @@ mode_group = parser.add_mutually_exclusive_group()
 mode_group.add_argument('--snapshot', type=str, nargs='?', const='', default=None,
                         metavar='OUTPUT_PATH',
                         help="快照模式：真实 API 调用 + git 追踪 + JSONL 记录。"
-                             "可选指定 JSONL 输出路径（默认为 workspace/api_records.jsonl）")
+                             "可选指定 JSONL 输出路径（默认为 <workspace_root>/api_records.jsonl）")
 mode_group.add_argument('--replay', type=str, default=None, metavar='JSONL_PATH',
                         help="回放模式：从指定 JSONL 文件回放，不调用真实 API")
 mode_group.add_argument('--hybrid', type=str, default=None, metavar='JSONL_PATH',
@@ -127,9 +97,14 @@ else:
 
 os.environ["CHATDEV_RUN_MODE"] = run_mode
 
+config_path, config_phase_path, config_role_path = get_config(args.config)
+workspace_root = get_workspace_root()
+
 if run_mode == "snapshot" and args.snapshot:
     # 用户指定了自定义 JSONL 输出路径
     os.environ["CHATDEV_SNAPSHOT_OUTPUT"] = args.snapshot
+elif run_mode == "snapshot":
+    os.environ["CHATDEV_SNAPSHOT_OUTPUT"] = str(workspace_root / "api_records.jsonl")
 
 if run_mode == "replay":
     os.environ["CHATDEV_REPLAY_JSONL"] = args.replay
@@ -143,7 +118,6 @@ if run_mode == "hybrid":
 # ----------------------------------------
 #          Init ChatChain
 # ----------------------------------------
-config_path, config_phase_path, config_role_path = get_config(args.config)
 args2type = {'GPT_3_5_TURBO': ModelType.GPT_3_5_TURBO,
              'GPT_4': ModelType.GPT_4,
             #  'GPT_4_32K': ModelType.GPT_4_32k,

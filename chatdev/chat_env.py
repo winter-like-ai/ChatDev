@@ -12,8 +12,9 @@ import requests
 from chatdev.codes import Codes
 from chatdev.documents import Documents
 from chatdev.roster import Roster
+from chatdev.path_utils import get_memory_dir
 from chatdev.utils import log_visualize
-from ecl.memory import Memory
+from chatdev.memory.memory import Memory
 
 try:
     from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall
@@ -39,6 +40,7 @@ class ChatEnvConfig:
         self.with_memory = with_memory # 在代理的交互之间是否使用记忆体(memory)
 
     def __str__(self):
+        """Render a readable multi-line summary of the active environment settings."""
         string = ""
         string += "ChatEnvConfig.with_memory: {}\n".format(self.with_memory)
         string += "ChatEnvConfig.clear_structure: {}\n".format(self.clear_structure)
@@ -80,9 +82,7 @@ class ChatEnv:
                 log_visualize("**[CMD Execute]**\n\n[CMD] pip install {}".format(module))
 
     def set_directory(self, directory):
-        """
-        设置当前环境的工作目录，并在工作目录不存在时进行创建或复制操作。
-        """
+        """Set up the run workspace directory, backing up any existing non-empty folder."""
         assert len(self.env_dict['directory']) == 0
         self.env_dict['directory'] = directory
         self.codes.directory = directory
@@ -101,46 +101,32 @@ class ChatEnv:
             os.mkdir(self.env_dict['directory'])
     
     def init_memory(self):
-        """
-        初始化环境变量中的记忆模块(Memory)。
-        """
+        """Initialize and upload the optional shared memory store."""
         self.memory.id_enabled = True
-        self.memory.directory = os.path.join(os.getcwd(),"ecl","memory")
-        if not os.path.exists(self.memory.directory):
-            os.mkdir(self.memory.directory)
+        self.memory.directory = str(get_memory_dir())
+        os.makedirs(self.memory.directory, exist_ok=True)
         self.memory.upload()
 
     def exist_bugs(self) -> tuple[bool, str]:
-        """
-        运行软件代码以检查是否存在 Bug/错误。
-        
-        返回 (Returns): (是否存在Bug, 具体错误信息或成功提示)
-        """
+        """Run the generated app and return whether execution surfaced an error."""
         directory = self.env_dict['directory']
 
         success_info = "The software run successfully without errors."
         try:
-
-            # check if we are on windows or linux
+            command = ["python", "main.py"] if os.name == 'nt' else ["python3", "main.py"]
+            process_kwargs = {
+                "cwd": directory,
+                "stdout": subprocess.PIPE,
+                "stderr": subprocess.PIPE,
+            }
             if os.name == 'nt':
-                command = "cd {} && dir && python main.py".format(directory)
-                process = subprocess.Popen(
-                    command,
-                    shell=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-                )
+                process_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
             else:
-                command = "cd {}; ls -l; python3 main.py;".format(directory)
-                process = subprocess.Popen(command,
-                                           shell=True,
-                                           preexec_fn=os.setsid,
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE
-                                           )
+                process_kwargs["preexec_fn"] = os.setsid
+
+            process = subprocess.Popen(command, **process_kwargs)
             time.sleep(3)
-            return_code = process.returncode
+            return_code = process.poll()
             # Check if the software is still running
             if process.poll() is None:
                 if "killpg" in dir(os):
@@ -156,7 +142,7 @@ class ChatEnv:
                 error_output = process.stderr.read().decode('utf-8')
                 if error_output:
                     if "Traceback".lower() in error_output.lower():
-                        errs = error_output.replace(directory + "/", "")
+                        errs = error_output.replace(directory + "/", "").replace(directory + "\\", "")
                         return True, errs
                 else:
                     return False, success_info
@@ -168,7 +154,7 @@ class ChatEnv:
         return False, success_info
 
     def recruit(self, agent_name: str):
-        """招募指定名称的代理(Agent)到花名册(Roster)中。"""
+        """Recruit the named agent into the active roster."""
         self.roster._recruit(agent_name)
 
     def exist_employee(self, agent_name: str) -> bool:
@@ -205,10 +191,7 @@ class ChatEnv:
         self.manuals._rewrite_docs()
 
     def write_meta(self) -> None:
-        """
-        写出该次项目的元数据至 `meta.txt`
-        包括：任务Prompt，配置信息，参演角色名单，使用的语言等
-        """
+        """Persist run metadata such as prompt, roster, and output summary."""
         directory = self.env_dict['directory']
 
         if not os.path.exists(directory):

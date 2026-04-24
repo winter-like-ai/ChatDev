@@ -14,15 +14,15 @@
 import copy
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from camel.agents import (
+from chatdev.agents import (
     ChatAgent,
     TaskPlannerAgent,
     TaskSpecifyAgent,
 )
-from camel.agents.chat_agent import ChatAgentResponse
-from camel.messages import ChatMessage, UserChatMessage
-from camel.messages import SystemMessage
-from camel.typing import ModelType, RoleType, TaskType, PhaseType
+from chatdev.agents.chat_agent import ChatAgentResponse
+from chatdev.agents.messages import ChatMessage, UserChatMessage
+from chatdev.agents.messages import SystemMessage
+from chatdev.agents.typing import ModelType, RoleType, TaskType, PhaseType
 from chatdev.utils import log_arguments, log_visualize
 
 

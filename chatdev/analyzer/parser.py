@@ -5,7 +5,7 @@ parser.py - ChatDev 日志核心解析器
 
 使用示例::
 
-    from log_analyzer import LogParser
+    from chatdev.analyzer import LogParser
 
     parser = LogParser()
 

@@ -5,7 +5,7 @@ import time
 
 import markdown
 import inspect
-from camel.messages.system_messages import SystemMessage
+from chatdev.agents.messages.system_messages import SystemMessage
 from visualizer.app import send_msg
 
 

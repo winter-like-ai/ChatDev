@@ -14,15 +14,15 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from camel.messages import (
+from chatdev.agents.messages import (
     OpenAIAssistantMessage,
     OpenAIChatMessage,
     OpenAIMessage,
     OpenAISystemMessage,
     OpenAIUserMessage,
 )
-from camel.prompts import CodePrompt, TextPrompt
-from camel.typing import ModelType, RoleType
+from chatdev.agents.prompts import CodePrompt, TextPrompt
+from chatdev.agents.typing import ModelType, RoleType
 
 try:
     from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall
@@ -192,7 +192,7 @@ class BaseMessage:
         返回 (Returns):
             int: 消息的 token 长度。
         """
-        from camel.utils import num_tokens_from_messages
+        from chatdev.agents.utils import num_tokens_from_messages
         return num_tokens_from_messages([self.to_openai_chat_message()], model)
 
     def extract_text_and_code_prompts(

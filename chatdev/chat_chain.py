@@ -6,16 +6,18 @@ import shutil
 import time
 from datetime import datetime
 
-from camel.agents import RolePlaying
-from camel.configs import ChatGPTConfig
-from camel.typing import TaskType, ModelType
+from chatdev.agents import RolePlaying
+from chatdev.agents.configs import ChatGPTConfig
+from chatdev.agents.typing import TaskType, ModelType
 from chatdev.chat_env import ChatEnv, ChatEnvConfig
+from chatdev.path_utils import get_log_path, get_workspace_path, get_workspace_root
 from chatdev.statistics import get_info
-from camel.web_spider import modal_trans
+from chatdev.agents.web_spider import modal_trans
 from chatdev.utils import log_visualize, now
 
 
 def check_bool(s):
+    """Convert string flags from JSON config into booleans."""
     return s.lower() == "true"
 
 
@@ -30,17 +32,7 @@ class ChatChain:
                  org_name: str = None,
                  model_type: ModelType = ModelType.GPT_3_5_TURBO,
                  code_path: str = None) -> None:
-        """
-        初始化 ChatChain 实例。
-
-        参数 (Args):
-            config_path: ChatChainConfig.json 配置文件的路径
-            config_phase_path: PhaseConfig.json 配置文件的路径
-            config_role_path: RoleConfig.json 配置文件的路径
-            task_prompt: 用户输入的软件需求描述 (prompt)
-            project_name: 用户输入的软件名称
-            org_name: 人类用户的组织名称
-        """
+        """Create a ChatChain and load all runtime configuration for a run."""
 
         # load config file
         self.config_path = config_path
@@ -111,23 +103,12 @@ class ChatChain:
             self.phases[phase] = phase_instance
 
     def make_recruitment(self):
-        """
-        招募所有员工（代理/Agent）。
-        
-        返回 (Returns): None
-        """
+        """Recruit all configured agents into the shared ChatEnv roster."""
         for employee in self.recruitments:
             self.chat_env.recruit(agent_name=employee)
 
     def execute_step(self, phase_item: dict):
-        """
-        执行 ChatChainConfig.json 中配置的单个阶段（phase）。
-        
-        参数 (Args):
-            phase_item: ChatChainConfig.json 中单个阶段的配置字典
-
-        返回 (Returns): None
-        """
+        """Execute one configured phase entry from ChatChainConfig.json."""
 
         phase = phase_item['phase']
         phase_type = phase_item['phaseType']
@@ -160,51 +141,30 @@ class ChatChain:
             raise RuntimeError(f"PhaseType '{phase_type}' is not yet implemented.")
 
     def execute_chain(self):
-        """
-        基于 ChatChainConfig.json 配置执行整个交互链（所有阶段）。
-        
-        返回 (Returns): None
-        """
+        """Run the configured phase sequence from start to finish."""
         for phase_item in self.chain:
             self.execute_step(phase_item)
 
     def get_logfilepath(self):
-        """
-        获取日志文件路径并创建相应的目录结构（放置在软件路径下）。
-        
-        返回 (Returns):
-            start_time: 开始制作软件的时间
-            log_filepath: 日志文件的完整路径
-        """
+        """Compute and return the timestamped log file path for this run."""
         start_time = now()
-        filepath = os.path.dirname(__file__)
-        # root = "/".join(filepath.split("/")[:-1])
-        root = os.path.dirname(filepath)
-        # directory = root + "/WareHouse/"
-        directory = os.path.join(root, "WareHouse")
-        log_filepath = os.path.join(directory,
-                                    "{}.log".format("_".join([self.project_name, self.org_name, start_time])))
+        log_filepath = str(get_log_path(self.project_name, self.org_name, start_time))
         return start_time, log_filepath
 
     def pre_processing(self):
-        """
-        预处理操作：移除无用文件、创建软件目录，并记录一些全局的配置设置日志。
-        
-        返回 (Returns): None
-        """
-        filepath = os.path.dirname(__file__)
-        root = os.path.dirname(filepath)
-        directory = os.path.join(root, "WareHouse")
+        """Prepare the workspace, copy inputs, and seed initial run state."""
+        workspace_root = get_workspace_root()
+        workspace_root.mkdir(parents=True, exist_ok=True)
 
         if self.chat_env.config.clear_structure:
-            for filename in os.listdir(directory):
-                file_path = os.path.join(directory, filename)
-                # logs with error trials are left in WareHouse/
+            for filename in os.listdir(workspace_root):
+                file_path = os.path.join(workspace_root, filename)
+                # logs with error trials are left in the workspace root
                 if os.path.isfile(file_path) and not filename.endswith(".py") and not filename.endswith(".log"):
                     os.remove(file_path)
                     print("{} Removed.".format(file_path))
 
-        software_path = os.path.join(directory, "_".join([self.project_name, self.org_name, self.start_time]))
+        software_path = str(get_workspace_path(self.project_name, self.org_name, self.start_time))
         self.chat_env.set_directory(software_path)
         os.environ["CHATDEV_WORKSPACE"] = software_path
 
@@ -256,39 +216,40 @@ class ChatChain:
             self.chat_env.env_dict['task_description'] = modal_trans(self.task_prompt_raw)
 
     def post_processing(self):
-        """
-        后处理操作：总结生产过程，将最终的代码提交到 git (如果开启)，并将日志文件移动到软件所在目录。
-        
-        返回 (Returns): None
-        """
+        """Finalize artifacts, summarize the run, and relocate the log file."""
 
         self.chat_env.write_meta()
-        filepath = os.path.dirname(__file__)
-        root = os.path.dirname(filepath)
 
         if self.chat_env_config.git_management:
             log_git_info = "**[Git Information]**\n\n"
+            directory = self.chat_env.env_dict["directory"]
 
             self.chat_env.codes.version += 1
-            os.system("cd {}; git add .".format(self.chat_env.env_dict["directory"]))
-            log_git_info += "cd {}; git add .\n".format(self.chat_env.env_dict["directory"])
-            os.system("cd {}; git commit -m \"v{} Final Version\"".format(self.chat_env.env_dict["directory"],
-                                                                          self.chat_env.codes.version))
-            log_git_info += "cd {}; git commit -m \"v{} Final Version\"\n".format(self.chat_env.env_dict["directory"],
-                                                                                  self.chat_env.codes.version)
+            subprocess.run(["git", "add", "."], cwd=directory, check=False)
+            log_git_info += "git add .\n"
+            subprocess.run(
+                ["git", "commit", "-m", f"v{self.chat_env.codes.version} Final Version"],
+                cwd=directory,
+                check=False,
+            )
+            log_git_info += "git commit -m \"v{} Final Version\"\n".format(self.chat_env.codes.version)
             log_visualize(log_git_info)
 
             git_info = "**[Git Log]**\n\n"
-            import subprocess
 
-            # execute git log
-            command = "cd {}; git log".format(self.chat_env.env_dict["directory"])
-            completed_process = subprocess.run(command, shell=True, text=True, stdout=subprocess.PIPE)
+            completed_process = subprocess.run(
+                ["git", "log"],
+                cwd=directory,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
 
             if completed_process.returncode == 0:
                 log_output = completed_process.stdout
             else:
-                log_output = "Error when executing " + command
+                log_output = completed_process.stderr or "Error when executing git log"
 
             git_info += log_output
             log_visualize(git_info)
@@ -320,21 +281,12 @@ class ChatChain:
         logging.shutdown()
         time.sleep(1)
 
-        shutil.move(self.log_filepath,
-                    os.path.join(root + "/WareHouse", "_".join([self.project_name, self.org_name, self.start_time]),
-                                 os.path.basename(self.log_filepath)))
+        final_log_path = os.path.join(directory, os.path.basename(self.log_filepath))
+        shutil.move(self.log_filepath, final_log_path)
 
     # @staticmethod
     def self_task_improve(self, task_prompt):
-        """
-        请求 Prompt Engineer 代理(Agent) 来优化用户查询提示(prompt)。
-        
-        参数 (Args):
-            task_prompt: 原始的用户查询提示
-
-        返回 (Returns):
-            revised_task_prompt: 由提示词工程师代理优化后的提示词
-        """
+        """Ask the prompt-engineer agent to rewrite the raw user task prompt."""
         self_task_improve_prompt = """I will give you a short description of a software design requirement, 
 please rewrite it into a detailed prompt that can make large language model know how to make this software better based this prompt,
 the prompt should ensure LLMs build a software that can be run correctly, which is the most import part you need to consider.

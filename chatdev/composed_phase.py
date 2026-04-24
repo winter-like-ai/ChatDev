@@ -3,7 +3,7 @@ import os
 from abc import ABC, abstractmethod
 from collections import defaultdict
 
-from camel.typing import ModelType
+from chatdev.agents.typing import ModelType
 from chatdev.chat_env import ChatEnv
 from chatdev.utils import log_visualize
 

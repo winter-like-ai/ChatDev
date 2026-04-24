@@ -14,8 +14,8 @@
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-from camel.messages import BaseMessage
-from camel.typing import RoleType
+from chatdev.agents.messages import BaseMessage
+from chatdev.agents.typing import RoleType
 
 try:
     from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall

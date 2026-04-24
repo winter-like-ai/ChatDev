@@ -1,19 +1,19 @@
 """
-cli.py - log_analyzer 命令行入口
+cli.py - chatdev.analyzer 命令行入口
 
 用法::
 
     # 单文件解析
-    python -m log_analyzer.cli input.log
-    python -m log_analyzer.cli input.log -o output.json
+    python -m chatdev.analyzer.cli input.log
+    python -m chatdev.analyzer.cli input.log -o output.json
 
     # 批量解析
-    python -m log_analyzer.cli ./dataset_mini/ --batch
-    python -m log_analyzer.cli ./dataset_mini/ --batch -o ./results/
+    python -m chatdev.analyzer.cli ./data/dataset_mini/ --batch
+    python -m chatdev.analyzer.cli ./data/dataset_mini/ --batch -o ./results/
 
     # 选项
-    python -m log_analyzer.cli input.log --skip-flask --skip-http
-    python -m log_analyzer.cli input.log --validate
+    python -m chatdev.analyzer.cli input.log --skip-flask --skip-http
+    python -m chatdev.analyzer.cli input.log --validate
 """
 import argparse
 import io
@@ -29,7 +29,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 
 def main():
     ap = argparse.ArgumentParser(
-        prog="log_analyzer",
+        prog="chatdev.analyzer",
         description="ChatDev 日志结构化解析工具：将 .log 文件转化为 JSON",
     )
     ap.add_argument(

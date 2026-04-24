@@ -14,7 +14,7 @@
 import inspect
 from typing import Any, Callable, Dict, Optional, Set, Tuple, TypeVar, Union
 
-from camel.typing import RoleType
+from chatdev.agents.typing import RoleType
 
 T = TypeVar('T')
 
@@ -93,7 +93,7 @@ class TextPrompt(str):
     def key_words(self) -> Set[str]:
         r"""返回包含提示中关键字的字符串集合。
         """
-        from camel.utils import get_prompt_template_key_words
+        from chatdev.agents.utils import get_prompt_template_key_words
         return get_prompt_template_key_words(self)
 
     def format(self, *args: Any, **kwargs: Any) -> 'TextPrompt':

@@ -13,7 +13,7 @@ analyzer_base.py - Bug 分析器基类与注册中心
 
 使用示例::
 
-    from log_analyzer.analyzer_base import AnalyzerBase, BugAnalyzerRegistry
+    from chatdev.analyzer.analyzer_base import AnalyzerBase, BugAnalyzerRegistry
 
     class RepeatOutputAnalyzer(AnalyzerBase):
         bug_type_id = "BUG_001"
