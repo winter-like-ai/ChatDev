@@ -25,7 +25,29 @@ from .parser import LogParser
 from .event_types import EventType, RawEntry
 from .schema import validate
 from .convert_to_playbook import api_to_playbook
-from .bug_detector import scan_playbook_for_bug_1_1, check_constraint_violation, scan_playbook_for_bug_1_3, scan_playbook_for_bug_2_2
+from .bug_detector import (
+    # New two-step architecture
+    Claim,
+    ClaimExtractor,
+    ClaimScorer,
+    BugDetector,
+    InteractionScores,
+    ScoredPlaybook,
+    SupportScoreDetail,
+    NormScoreDetail,
+    extract_claims_fast,
+    save_scored_playbook,
+    # Future extension points
+    ErrorLocator,
+    ErrorClassifier,
+    # Backward-compatible wrappers
+    scan_playbook_for_bug_1_1,
+    check_constraint_violation,
+    scan_playbook_for_bug_1_3,
+    scan_playbook_for_bug_2_2,
+    scan_playbook_for_bug_2_6,
+    check_hallucination_bug,
+)
 
 __all__ = [
     "LogParser",
@@ -33,10 +55,25 @@ __all__ = [
     "RawEntry",
     "validate",
     "api_to_playbook",
+    # New two-step architecture
+    "Claim",
+    "ClaimExtractor",
+    "ClaimScorer",
+    "BugDetector",
+    "InteractionScores",
+    "ScoredPlaybook",
+    "SupportScoreDetail",
+    "NormScoreDetail",
+    "extract_claims_fast",
+    "save_scored_playbook",
+    # FM-2.6 plan-action gap
+    "scan_playbook_for_bug_2_6",
+    # Backward-compatible
     "scan_playbook_for_bug_1_1",
     "check_constraint_violation",
     "scan_playbook_for_bug_1_3",
     "scan_playbook_for_bug_2_2",
+    "check_hallucination_bug",
 ]
 
 
