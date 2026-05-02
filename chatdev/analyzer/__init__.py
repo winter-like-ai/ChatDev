@@ -25,6 +25,12 @@ from .parser import LogParser
 from .event_types import EventType, RawEntry
 from .schema import validate
 from .convert_to_playbook import api_to_playbook
+from .llm_summarizer import (
+    LLMSummarizer,
+    summarize_prompt,
+    summarize_output,
+    summarize_playbook,
+)
 from .bug_detector import (
     # New two-step architecture
     Claim,
@@ -55,6 +61,11 @@ __all__ = [
     "RawEntry",
     "validate",
     "api_to_playbook",
+    # LLM summarizer (CLAUDE_TODO/TODO.md)
+    "LLMSummarizer",
+    "summarize_prompt",
+    "summarize_output",
+    "summarize_playbook",
     # New two-step architecture
     "Claim",
     "ClaimExtractor",
