@@ -31,6 +31,14 @@ from .llm_summarizer import (
     summarize_output,
     summarize_playbook,
 )
+from .logprob_consistency import (
+    LogprobConsistencyScorer,
+    chatdev_filename_sort_key,
+    evaluate_consistency_with_logprobs,
+    infer_user_task_for_path,
+    load_user_task_map,
+    score_summarized_json,
+)
 from .bug_detector import (
     # New two-step architecture
     Claim,
@@ -66,6 +74,13 @@ __all__ = [
     "summarize_prompt",
     "summarize_output",
     "summarize_playbook",
+    # Logprob consistency scorer (CLAUDE_TODO/TODO.md)
+    "LogprobConsistencyScorer",
+    "chatdev_filename_sort_key",
+    "evaluate_consistency_with_logprobs",
+    "infer_user_task_for_path",
+    "load_user_task_map",
+    "score_summarized_json",
     # New two-step architecture
     "Claim",
     "ClaimExtractor",
