@@ -23,6 +23,8 @@ from openai import OpenAI
 
 DEFAULT_MODEL = "gpt-4o-mini"
 DEFAULT_TOP_LOGPROBS = 5
+DEFAULT_PREMISE_ORDER = ("user_demand", "known_context", "tasks")
+VALID_PREMISE_KEYS = set(DEFAULT_PREMISE_ORDER)
 POSITIVE_TOKENS = {"yes", " yes", "y", " y", "yes.", " true", "true"}
 USER_TASK_KEYS = ("user_demand", "user_task", "task_prompt", "initial_task", "initial_user_task")
 CHATDEV_FILENAME_PATTERN = re.compile(
@@ -104,10 +106,12 @@ class LogprobConsistencyScorer:
         top_logprobs: int = DEFAULT_TOP_LOGPROBS,
         positive_tokens: Optional[Iterable[str]] = None,
         negative_tokens: Optional[Iterable[str]] = None,
+        premise_order: Optional[Sequence[str]] = None,
     ) -> None:
         self.client = client or _default_client()
         self.model = model
         self.top_logprobs = top_logprobs
+        self.premise_order = normalize_premise_order(premise_order)
         self.positive_tokens = {
             token.lower() for token in (positive_tokens or POSITIVE_TOKENS)
         }
@@ -145,12 +149,18 @@ class LogprobConsistencyScorer:
         self,
         entry: Dict[str, Any],
         user_task: Optional[str] = None,
+        premise_order: Optional[Sequence[str]] = None,
     ) -> Dict[str, Any]:
         """Return a copy of one summarized interaction with scores appended."""
         scored = copy.deepcopy(entry)
         entry_user_task = _extract_user_task_from_mapping(scored)
         effective_user_task = user_task or entry_user_task
-        premises = build_premises(scored, user_task=effective_user_task)
+        selected_premise_order = normalize_premise_order(premise_order or self.premise_order)
+        premises = build_premises(
+            scored,
+            user_task=effective_user_task,
+            premise_order=selected_premise_order,
+        )
         output_items = scored.get("output") or []
 
         item_scores: List[Dict[str, Any]] = []
@@ -166,8 +176,9 @@ class LogprobConsistencyScorer:
         if effective_user_task:
             scored["user_demand"] = effective_user_task
             scored["scoring_context"] = {
-                "user_demand_in_prompt": True,
-                "premise_order": ["user_demand", "known_context", "tasks"],
+                "user_demand_in_prompt": "user_demand" in selected_premise_order,
+                "premise_order": list(selected_premise_order),
+                "available_premise_order": list(DEFAULT_PREMISE_ORDER),
                 "judge_rule": (
                     "Yes iff at least one premise supports the output and no "
                     "premise contradicts it; No if any premise contradicts it "
@@ -183,10 +194,12 @@ class LogprobConsistencyScorer:
         self,
         data: Dict[str, Any],
         user_task: Optional[str] = None,
+        premise_order: Optional[Sequence[str]] = None,
         verbose: bool = False,
     ) -> Dict[str, Any]:
         """Score a summarized JSON object grouped by role."""
         effective_user_task = user_task
+        selected_premise_order = normalize_premise_order(premise_order or self.premise_order)
         result: Dict[str, Any] = {}
         for role, interactions in data.items():
             if not isinstance(interactions, list):
@@ -198,7 +211,13 @@ class LogprobConsistencyScorer:
                 if not isinstance(entry, dict):
                     role_entries.append(copy.deepcopy(entry))
                     continue
-                role_entries.append(self.score_entry(entry, user_task=effective_user_task))
+                role_entries.append(
+                    self.score_entry(
+                        entry,
+                        user_task=effective_user_task,
+                        premise_order=selected_premise_order,
+                    )
+                )
                 if verbose:
                     print(f"[{role}] scored {index}/{len(interactions)}")
             result[role] = role_entries
@@ -212,6 +231,7 @@ class LogprobConsistencyScorer:
         user_task_map: Optional[Dict[str, str]] = None,
         dataset_path: Optional[str] = None,
         trajectory_dir: Optional[str] = None,
+        premise_order: Optional[Sequence[str]] = None,
         verbose: bool = False,
     ) -> Dict[str, Any]:
         """Load summarized JSON, append scores, optionally write a new file."""
@@ -225,7 +245,12 @@ class LogprobConsistencyScorer:
             trajectory_dir=trajectory_dir,
         )
 
-        scored = self.score_summarized_data(data, user_task=effective_user_task, verbose=verbose)
+        scored = self.score_summarized_data(
+            data,
+            user_task=effective_user_task,
+            premise_order=premise_order,
+            verbose=verbose,
+        )
 
         if output_path:
             os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
@@ -358,18 +383,53 @@ Answer:"""
 def build_premises(
     entry: Dict[str, Any],
     user_task: Optional[str] = None,
+    premise_order: Optional[Sequence[str]] = None,
 ) -> List[str]:
-    """Build judge premises in the required order.
+    """Build judge premises in the selected order.
 
-    The initial user task is intentionally first so the binary judge always
-    sees the original user requirement before role-local context and tasks.
+    By default the initial user task is first, followed by role-local context
+    and tasks.  Callers can pass a subset such as ``["tasks"]`` to score only
+    against that premise group.
     """
+    selected_premise_order = normalize_premise_order(premise_order)
     premises: List[str] = []
-    if user_task:
-        premises.append(f"Initial user task: {user_task}")
-    premises.extend(str(item) for item in (entry.get("known_context") or []))
-    premises.extend(str(item) for item in (entry.get("tasks") or []))
+    for premise_key in selected_premise_order:
+        if premise_key == "user_demand":
+            if user_task:
+                premises.append(f"Initial user task: {user_task}")
+        elif premise_key == "known_context":
+            premises.extend(str(item) for item in (entry.get("known_context") or []))
+        elif premise_key == "tasks":
+            premises.extend(str(item) for item in (entry.get("tasks") or []))
     return premises
+
+
+def normalize_premise_order(premise_order: Optional[Sequence[str]] = None) -> tuple:
+    """Validate and normalize selected premise keys.
+
+    Valid keys are ``user_demand``, ``known_context``, and ``tasks``.  Passing a
+    subset scores outputs only against those premise groups while preserving the
+    caller-provided order.
+    """
+    if premise_order is None:
+        return DEFAULT_PREMISE_ORDER
+
+    normalized = tuple(str(item).strip() for item in premise_order if str(item).strip())
+    if not normalized:
+        raise ValueError("premise_order must include at least one premise key")
+
+    invalid = [item for item in normalized if item not in VALID_PREMISE_KEYS]
+    if invalid:
+        raise ValueError(
+            "Invalid premise_order key(s): "
+            f"{invalid}. Expected a subset of {list(DEFAULT_PREMISE_ORDER)}."
+        )
+
+    duplicates = [item for index, item in enumerate(normalized) if item in normalized[:index]]
+    if duplicates:
+        raise ValueError(f"premise_order contains duplicate key(s): {duplicates}")
+
+    return normalized
 
 
 def load_user_task_map(
@@ -607,6 +667,7 @@ def score_summarized_json(
     user_task_map: Optional[Dict[str, str]] = None,
     dataset_path: Optional[str] = None,
     trajectory_dir: Optional[str] = None,
+    premise_order: Optional[Sequence[str]] = None,
     verbose: bool = False,
 ) -> Dict[str, Any]:
     """Convenience function for scoring a summarized JSON file."""
@@ -617,5 +678,6 @@ def score_summarized_json(
         user_task_map=user_task_map,
         dataset_path=dataset_path,
         trajectory_dir=trajectory_dir,
+        premise_order=premise_order,
         verbose=verbose,
     )
